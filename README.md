@@ -2,7 +2,8 @@
 
 👉 **[Launch Viewer](https://peteskis.github.io/Project-Gorgon-Chat-log-viewer/)**
 
-![Project Gorgon Chat Log Viewer](image.png)
+![My screenshot](image.png)
+
 
 A lightweight, local-first chat log viewer for **Project Gorgon** chat logs.
 
