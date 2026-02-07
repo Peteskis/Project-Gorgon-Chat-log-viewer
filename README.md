@@ -12,7 +12,7 @@ It displays chat in a clean viewer with channel tabs (e.g. `[Global]`, `[Help]`,
 - 📁 Folder picker (Chrome / Edge / Brave) to browse logs in a chosen folder
 - 📄 Load a single `.log` / `.txt` file (works in most browsers)
 - 🧲 Drag & drop log files onto the page
-- 🧭 Tabs automatically built from `[Channel]` tags in the log once used in game.
+- 🧭 Channel Tabs automatically built from `[Channel]` tags in the log once used in game.
 - 🔎 Search (filters the current tab)
 - 🎨 Per-channel colour picker (saved locally on your device)
 - 🧾 Handles “system/status” lines (no speaker) cleanly
