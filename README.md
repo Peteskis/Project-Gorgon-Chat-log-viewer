@@ -5,7 +5,7 @@
 
 A lightweight, local-first chat log viewer for **Project Gorgon** chat logs.
 
-It displays chat in a clean viewer with channel tabs (e.g. `[Global]`, `[Help]`, `[Nearby]`), search, and per-channel colour customisation.
+It displays chat in a clean viewer with channel tabs (e.g. `[Global]`, `[Help]`, `[Nearby]` , `[Combat]`), search, and per-channel colour customisation.
 
 ## Features
 
