@@ -57,12 +57,7 @@ Lines that don’t match are placed into an `Unparsed` channel so nothing is los
 This project does **not** upload or transmit your log files anywhere.  
 All parsing and viewing happens locally in your browser.
 
-## Contributing / requests
 
-Feel free to open an issue with:
-- a sample (redacted) log snippet
-- channel list you want styled by default
-- feature requests (auto-load newest log, highlights, exports, etc.)
 
 
 
