@@ -2,8 +2,6 @@
 
 👉 **[Launch Viewer](https://peteskis.github.io/Project-Gorgon-Chat-log-viewer/)**
 
-![My screenshot](image.png)
-
 
 A lightweight, local-first chat log viewer for **Project Gorgon** chat logs.
 
@@ -65,3 +63,8 @@ Feel free to open an issue with:
 - a sample (redacted) log snippet
 - channel list you want styled by default
 - feature requests (auto-load newest log, highlights, exports, etc.)
+
+
+
+<img width="1618" height="1156" alt="image" src="https://github.com/user-attachments/assets/a61772b7-14c9-49f2-8071-b8248f8c4332" />
+
