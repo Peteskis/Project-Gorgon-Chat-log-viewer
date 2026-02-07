@@ -58,6 +58,9 @@ This project does **not** upload or transmit your log files anywhere.
 All parsing and viewing happens locally in your browser.
 
 
+<img width="1630" height="1201" alt="image" src="https://github.com/user-attachments/assets/067e8ef7-a167-4470-aab3-c053827bb329" />
+
+
 
 
 
