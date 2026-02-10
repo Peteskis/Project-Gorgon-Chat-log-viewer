@@ -1,4 +1,4 @@
-# Project Gorgon Chat log viewer
+# Project Gorgon Chat log viewer   (Live version coming Soon)
 
 👉 **[Launch Viewer](https://peteskis.github.io/Project-Gorgon-Chat-log-viewer/)**
 
