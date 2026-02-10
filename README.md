@@ -4,7 +4,7 @@
 Special thanks to https://www.twitch.tv/zewtastic  for giving me more ideas to implement.
 
 
-👉 **[Launch Viewer](https://peteskis.github.io/Project-Gorgon-Chat-log-viewer/)**  
+👉 **[Launch Viewer here](https://peteskis.github.io/Project-Gorgon-Chat-log-viewer/)**  
 
 
 # Project Gorgon — Live Chat Log Viewer (single-file HTML)
