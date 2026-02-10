@@ -1,4 +1,7 @@
-# Project Gorgon Chat log viewer   ( New Live version coming soon: includes text-to-speech and defined search fields to trigger TTS based on specific text, player names, or channel names.)
+# Project Gorgon Chat log viewer   
+( New Live version coming soon: includes text-to-speech and defined search fields to trigger TTS based on specific text, player names, or channel names.)
+
+special thanks to https://www.twitch.tv/zewtastic  for giving me more ideas to implement.
 
 👉 **[Launch Viewer](https://peteskis.github.io/Project-Gorgon-Chat-log-viewer/)**  This is the older version that is an offline reader.
 
