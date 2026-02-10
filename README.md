@@ -3,14 +3,16 @@
 
 Special thanks to https://www.twitch.tv/zewtastic  for giving me more ideas to implement.
 
+
 👉 **[Launch Viewer](https://peteskis.github.io/Project-Gorgon-Chat-log-viewer/)**  This is the older version that is an offline reader. version 1.0
 
 
-# Project Gorgon Chat Log Viewer (single-file HTML) Version 1.2
+
+# Project Gorgon — Live Chat Log Viewer (single-file HTML)
 
 A lightweight, local-first viewer for **Project Gorgon** chat logs — runs entirely in your browser from one HTML file.
 
-It displays chat in a clean, scrollable window with auto-built **channel tabs** (e.g. `[Global]`, `[Help]`, `[Nearby]`, `[NPC Chatter]`), **search**, **live auto-refresh**, **text-to-speech**, and per-channel colour customisation.
+It displays chat in a clean, scrollable window with auto-built **channel tabs** (e.g. `[Global]`, `[Help]`, `[Nearby]`, `[NPC Chatter]`), **search**, **live auto-refresh**, **alert rules**, **text-to-speech**, and per-channel colour customisation.
 
 ---
 
@@ -27,7 +29,7 @@ It displays chat in a clean, scrollable window with auto-built **channel tabs** 
 - 🧭 **Channel tabs** automatically created from `[Channel]` tags  
   Includes an **All** tab and per-channel message counts
 - 🔎 **Search** filters the currently selected tab
-- ⬇️ **Auto-scroll** toggle
+- ⬇️ **Auto-scroll** toggle (on by default)
 - 🗜️ **Compact view** toggle
 - ↕️ **Resizable chat window** (drag handle to adjust height; saved locally)
 - 🧰 Left “Input” panel has its own **scrollbar** so you can scroll options without using the page scrollbar
@@ -35,7 +37,7 @@ It displays chat in a clean, scrollable window with auto-built **channel tabs** 
 ### Live updating
 - 🔁 **Auto-refresh** reads the selected log repeatedly and appends **only new lines** (incremental)
 - ⏱️ Interval dropdown: **1s / 2s / 5s / 10s / 30s**
-- ▶️ Defaults to a “live” setup on load (**Auto-scroll ON**, **Auto-refresh ON**, **1s** interval) — change any setting anytime
+- ▶️ Defaults to “live” on load (**Auto-scroll ON**, **Auto-refresh ON**, **1s** interval) — change any setting anytime
 
 ### Colour system
 - 🎨 Each channel gets a unique colour
@@ -49,14 +51,36 @@ It displays chat in a clean, scrollable window with auto-built **channel tabs** 
 - 🎛️ **Channel colour customisation UI** with colour picker + Clear  
   Saved locally and designed to stay smooth even with large logs
 
+### Alert rules (multi-rule automation)
+Create multiple rules that trigger on **new incoming lines** in live mode.
+
+Each rule can include:
+- Scope: **Current tab** or **All channels**
+- Optional filters: **Channel**, **Speaker**, **Phrase**
+- Actions:
+  - 🔊 **Speak** the message (TTS)
+  - 🎵 **Play custom sound** (choose your own audio file per rule)
+  - 🖍️ **Highlight triggering line**
+  - 👤 **Highlight all messages from the speaker** (duration configurable)
+- Per-rule **Highlight seconds** and **Cooldown seconds**
+- Rules are saved locally in your browser
+
+Also includes:
+- 🙋 **Mentions / My name** quick toggle (comma-separated name list) with the same actions/duration/cooldown options
+- ⏱️ **Arm from now** button (ignore old lines and only react to new ones)
+
 ### Text-to-speech (TTS)
-- 🔊 “Read aloud” panel:
-  - Filter by **Speaker** (name before the `:`), **Channel**, or both
-  - Optional **Trigger phrase** (e.g. `egg run`) to speak when anyone says it
-  - **Scope**: Current tab (selected channel tab) or All channels
-  - **Live (from now)** mode: starts at the bottom and only reads **new** matching messages
-  - Voice and speed controls
-- ✨ When a trigger phrase fires, the viewer **highlights all messages from the speaker** for **20 seconds** (and the triggering line is highlighted stronger)
+- Voice + speed controls
+- “Read aloud” can filter by **Speaker** and/or **Channel**
+- **Live (from now)** mode: starts at the bottom and only reads new matching messages
+- When a phrase/rule triggers, it can highlight for ~20 seconds (configurable via rules/mentions)
+
+### Performance mode
+- 🚀 **Performance mode** enables virtualized rendering for huge logs (renders only on-screen rows)
+- Does **not** delete history — you can still scroll back through everything
+- In Performance mode, long lines are abbreviated for speed, but:
+  - Hover shows the full line tooltip
+  - Click a message to see full content in a **Full message preview** (scrollable)
 
 ### Privacy
 - 🔒 **Nothing is uploaded** — parsing/viewing happens locally in your browser.
@@ -74,6 +98,7 @@ It displays chat in a clean, scrollable window with auto-built **channel tabs** 
 3. Click channel tabs to filter.
 4. Use **Search** to filter the current tab.
 5. Enable **Auto-refresh** for live updates (best with folder mode).
+6. Add **Alert rules** (or Mentions) for speaking/highlighting/sounds on live chat.
 
 ---
 
@@ -86,22 +111,19 @@ Works best in **Chrome / Edge / Brave / Opera** (Chromium browsers).
 - On future visits the app may remember the folder handle, but you may still need to click **Grant access**.
 
 ### Firefox / Safari
-These browsers do not support the same folder-handle API used for live folder reading.
+Folder picking and persistent file handles are limited, so live folder reading may not work the same way.
 You can still use:
 - **Load log file**, or
 - **Drag & drop**
 
-(You’ll see an in-app note when folder mode isn’t supported.)
+(The app shows an in-app note when folder mode isn’t supported.)
 
 ---
-## Notes
-
-Live” auto-refresh works best when the log file was selected via Choose folder, because it can keep a persistent handle to re-read the file efficiently.
-
 
 ## Log format
 
 The viewer expects lines similar to:
+
 
 YY-MM-DD HH:MM:SS    [Channel] Name: message
 
@@ -113,9 +135,4 @@ Example:
 
 <img width="1630" height="1201" alt="image" src="https://github.com/user-attachments/assets/067e8ef7-a167-4470-aab3-c053827bb329" />
 
-
-
-
-
-<img width="1618" height="1156" alt="image" src="https://github.com/user-attachments/assets/a61772b7-14c9-49f2-8071-b8248f8c4332" />
 
