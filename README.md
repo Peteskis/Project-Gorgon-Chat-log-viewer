@@ -5,7 +5,8 @@ Special thanks to https://www.twitch.tv/zewtastic  for giving me more ideas to i
 
 
 👉 **[Launch Viewer here](https://peteskis.github.io/Project-Gorgon-Chat-log-viewer/)**  
-
+---
+---
 
 [![Donate](https://img.shields.io/badge/Donate-PayPal-blue.svg)](https://www.paypal.com/donate/buttons?type=S&fromManage=true)  It's a Free viewer so only donate if you feel like it
 
