@@ -105,7 +105,7 @@ What it does not do
 
 ❌ It does not grant write access — this viewer doesn’t need to write logs
 
--Why you sometimes need it again-
+- Why you sometimes need it again
 
 Browsers may require re-authorization:
 
