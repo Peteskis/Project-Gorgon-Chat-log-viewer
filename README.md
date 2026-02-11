@@ -113,9 +113,11 @@ after restarting the browser
 
 after clearing site data
 
+when the page reloads and the handle is “remembered” but not “active”
+
 sometimes after some time has passed
 
-when the page reloads and the handle is “remembered” but not “active”
+
 ---
 
 ## How to use
