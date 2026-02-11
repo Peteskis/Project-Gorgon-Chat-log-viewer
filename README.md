@@ -1,4 +1,4 @@
-I built this as I wanted ways to search and get notifications from chat in tells/trade items etc while on the Arisetsu Server
+
 # Project Gorgon Live Chat log viewer   
 ( New Live version 1.2 Beta is now added: includes text-to-speech and defined search fields to trigger TTS based on specific text, player names, or channel names, ++)   
 I will add a Youtube vid soon to show how easy it is to use.
