@@ -8,7 +8,7 @@ Special thanks to https://www.twitch.tv/zewtastic  for giving me more ideas to i
 
 ---
 
-[![Donate](https://img.shields.io/badge/Donate-PayPal-blue.svg)](https://www.paypal.com/donate/buttons?type=S&fromManage=true)  It's a Free viewer so only donate if you feel like it
+[![Donate](https://img.shields.io/badge/Donate-PayPal-blue.svg)](https://www.paypal.com/donate/buttons?type=S&fromManage=true)  It's a Free Chat Viewer so only donate if you feel like it
 
 ---
 
