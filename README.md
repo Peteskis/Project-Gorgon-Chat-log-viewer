@@ -91,7 +91,31 @@ Also includes:
 
 ### Privacy
 - 🔒 **Nothing is uploaded** — parsing/viewing happens locally in your browser.
+What permission it grants
 
+✅ Read access to the chosen folder (and the files inside it)
+
+✅ So it can list logs and re-read the currently selected file for auto-refresh / live updates
+
+What it does not do
+
+❌ It does not upload anything anywhere (the browser reads locally; the app just displays it)
+
+❌ It does not give access to your whole computer
+
+❌ It does not grant write access — this viewer doesn’t need to write logs
+
+-Why you sometimes need it again-
+
+Browsers may require re-authorization:
+
+after restarting the browser
+
+after clearing site data
+
+sometimes after some time has passed
+
+when the page reloads and the handle is “remembered” but not “active”
 ---
 
 ## How to use
