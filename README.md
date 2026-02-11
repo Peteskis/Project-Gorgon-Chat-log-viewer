@@ -137,7 +137,6 @@ Example:
 26-02-07 00:00:04    [Global] Zewtastic: hello
 
 
-
-<img width="1630" height="1201" alt="image" src="https://github.com/user-attachments/assets/067e8ef7-a167-4470-aab3-c053827bb329" />
+<img width="853" height="1288" alt="Screen" src="https://github.com/user-attachments/assets/9117b376-cc79-4944-ae24-2f306f13f928" />
 
 
