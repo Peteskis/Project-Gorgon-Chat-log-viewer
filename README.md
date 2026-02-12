@@ -7,7 +7,7 @@ Added a Tips section and Tab on screen.
 Special thanks to https://www.twitch.tv/zewtastic  for giving me more ideas to implement.
 
 
-# 👉  **[Launch Viewer here](https://peteskis.github.io/Project-Gorgon-Chat-log-viewer/)**  
+# 👉  **[Launch Viewer here](https://peteskis.github.io/Project-Gorgon-Chat-log-viewer/index.html)**  
 Works best in Chrome / Edge / Brave / Opera (Chromium browsers).
 ---
 
