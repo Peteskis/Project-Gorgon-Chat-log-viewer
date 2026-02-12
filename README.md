@@ -1,6 +1,6 @@
 
 # Project Gorgon Live Chat log viewer   
-( New Live version 1.3 is now added: includes text-to-speech and defined search fields to trigger TTS based on specific text, player names, or channel names, plus multiple channels separated by a (,).  
+( New Live version 1.3 is now added: includes text-to-speech and defined search fields to trigger TTS based on specific text, player names, or channel names, plus multiple channels separated by a (comma).  
 Added a Tips section and Tab on screen.
 
 
