@@ -164,7 +164,8 @@ Example:
 
 26-02-07 00:00:04    [Global] Zewtastic: hello
 
+<img width="1099" height="1382" alt="Capture4" src="https://github.com/user-attachments/assets/91c6d4ab-ab62-42de-82be-34d92e132754" />
 
-<img width="853" height="1288" alt="Screen" src="https://github.com/user-attachments/assets/9117b376-cc79-4944-ae24-2f306f13f928" />
+
 
 
