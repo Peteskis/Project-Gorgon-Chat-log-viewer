@@ -1,3 +1,4 @@
+Added v1.6 **(Pinned Messages)** Pin any messages and review in it's own Tab
 
 # Project Gorgon Live Chat log viewer, Chat Rules and Combat Logger   
 New Live Version 1.5 (Beta) is now available!
