@@ -1,0 +1,4681 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Project Gorgon Live Chat Log Viewer</title>
+  <style>
+    :root{
+      --bg:#0b1020; --panel:#0f172a; --panel2:#111c36; --text:#e5e7eb; --muted:#94a3b8;
+      --border:rgba(148,163,184,.18); --accent:#60a5fa; --accent2:#22c55e; --warn:#f59e0b; --danger:#fb7185;
+      --shadow: 0 12px 30px rgba(0,0,0,.35); --radius:14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:var(--sans); background:
+        radial-gradient(1200px 600px at 20% 10%, rgba(96,165,250,.18), transparent 60%),
+        radial-gradient(1000px 600px at 80% 10%, rgba(34,197,94,.10), transparent 60%),
+        var(--bg);
+      color:var(--text); line-height:1.35;
+    }
+    header{
+      position:sticky; top:0; z-index:10;
+      background: linear-gradient(180deg, rgba(11,16,32,.96), rgba(11,16,32,.86));
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+    }
+    .wrap{max-width:1600px;margin:0 auto;padding:18px 16px}
+    .topbar{display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap;}
+    .title{display:flex; gap:10px; align-items:baseline; flex-wrap:wrap;}
+    .title h1{margin:0;font-size:18px;letter-spacing:.2px}
+    .title .sub{color:var(--muted);font-size:13px}
+    .controls{display:flex; gap:10px; align-items:center; flex-wrap:wrap;}
+    .btn, .chip, input[type="text"], textarea, select{
+      border:1px solid var(--border);
+      background: rgba(15,23,42,.65);
+      color:var(--text);
+      border-radius:12px;
+      padding:10px 12px;
+      font-size:13px;
+      outline:none;
+    }
+
+    .btn{cursor:pointer; transition: transform .06s ease, border-color .2s ease, background .2s ease; user-select:none;}
+    .btn:hover{border-color: rgba(96,165,250,.55); background: rgba(15,23,42,.88)}
+    .btn:active{transform: translateY(1px)}
+    
+    /* Brighter action accents for Alert Rules */
+    .btnAccent{
+      background: rgba(59,130,246,.22);
+      border-color: rgba(96,165,250,.75);
+      color: rgba(239,246,255,.98);
+      box-shadow: 0 0 0 2px rgba(59,130,246,.10) inset;
+      font-weight: 600;
+    }
+    .btnAccent:hover{
+      background: rgba(59,130,246,.30);
+      border-color: rgba(147,197,253,.95);
+    }
+    .btnRuleAccent{
+      background: rgba(16,185,129,.20);
+      border-color: rgba(52,211,153,.75);
+      color: rgba(236,253,245,.98);
+      box-shadow: 0 0 0 2px rgba(16,185,129,.10) inset;
+      font-weight: 600;
+    }
+    .btnRuleAccent:hover{
+      background: rgba(16,185,129,.28);
+      border-color: rgba(110,231,183,.95);
+    }
+
+    .chipAccent{
+      background: rgba(59,130,246,.18);
+      border-color: rgba(96,165,250,.75);
+      box-shadow: 0 0 0 2px rgba(59,130,246,.10) inset;
+      cursor: pointer;
+    }
+    .chipAccent:hover{
+      background: rgba(59,130,246,.24);
+      border-color: rgba(147,197,253,.95);
+    }
+#ttsPlay.playing{border-color: rgba(34,197,94,.75); background: rgba(34,197,94,.18); box-shadow: 0 0 0 2px rgba(34,197,94,.12) inset;}
+    input[type="file"]{display:none}
+    .chip{padding:8px 10px; display:inline-flex; gap:8px; align-items:center;}
+    .chip b{font-weight:600}
+    .grid{display:grid; grid-template-columns: 1fr; gap:14px; margin-top:14px;}
+    @media(min-width:960px){ .grid{grid-template-columns: 540px 1fr} }
+    .card{
+      background: linear-gradient(180deg, rgba(15,23,42,.85), rgba(15,23,42,.65));
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .card header{position:unset; background:none; border-bottom:1px solid var(--border);}
+    .card h2{margin:0; font-size:13px; letter-spacing:.3px; text-transform:uppercase; color:var(--muted);}
+    .card .body{padding:14px}
+    .drop{
+      border: 1px dashed rgba(148,163,184,.35);
+      background: rgba(17,28,54,.35);
+      border-radius: 12px;
+      padding: 14px;
+      color: var(--muted);
+      font-size: 13px;
+      display:flex; flex-direction:column; gap:10px;
+      min-height: 160px; justify-content:center; align-items:center; text-align:center;
+    }
+    .drop.drag{border-color: rgba(96,165,250,.8); background: rgba(96,165,250,.08); color: var(--text)}
+    textarea{width:100%; min-height: 120px; resize: vertical; font-family: var(--mono); background: rgba(11,16,32,.35);}
+    .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap; width:100%;}
+    .row .grow{flex:1}
+    .muted{color:var(--muted)}
+    .tabs{display:flex; gap:8px; flex-wrap:wrap; padding:12px; border-bottom:1px solid var(--border); background: rgba(17,28,54,.25);}
+    .tab{
+      border:1px solid var(--border); background: rgba(15,23,42,.55);
+      padding:8px 10px; border-radius: 999px; font-size: 13px; cursor:pointer;
+      display:inline-flex; align-items:center; gap:8px; user-select:none;
+      transition: border-color .2s ease, background .2s ease;
+    }
+/* Pop-out button on tabs */
+.tab { position: relative; }
+.tab .popoutBtn{
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 0;
+  font-size: 13px;
+  line-height: 12px;
+  font-weight: 800;
+  padding: 2px 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  background: rgba(0,0,0,.28);
+  border: 1px solid rgba(255,255,255,.16);
+  color: var(--c, #93c5fd);
+  text-shadow: 0 1px 0 rgba(0,0,0,.55);
+  opacity: .95;
+}
+.tab .popoutBtn:hover{ opacity: 1; background: rgba(0,0,0,.40); border-color: rgba(255,255,255,.28); }
+.tab .popoutBtn:active{ transform: translateY(-50%) scale(0.98); }
+
+    .tab:hover{border-color: rgba(96,165,250,.55)}
+    .tab.active{border-color: rgba(96,165,250,.9); background: rgba(96,165,250,.14);}
+    .badge{font-size:12px; padding:2px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted);}
+    .badge.new{color: rgba(226,232,240,.95); border-color: rgba(34,197,94,.55); background: rgba(34,197,94,.14);}
+    .tab.unread{border-color: rgba(34,197,94,.70); background: rgba(34,197,94,.10);}
+    .viewer{height: var(--viewerHeight, calc(100vh - 240px)); min-height: 320px; max-height: calc(100vh - 140px); overflow:auto; background: rgba(11,16,32,.25);}
+
+    .viewerWrap{position:relative}
+    .tutorialOverlay{
+      position:absolute; inset:0;
+      display:flex; align-items:center; justify-content:center;
+      padding:18px;
+      background: linear-gradient(180deg, rgba(11,16,32,.55), rgba(11,16,32,.25));
+      pointer-events:none;
+    }
+    .tutorialCard{
+      width:min(760px, 100%);
+      background: rgba(15,23,42,.92);
+      border:1px solid var(--border);
+      border-radius:16px;
+      box-shadow: var(--shadow);
+      padding:16px 16px 14px;
+      pointer-events:auto;
+    }
+    .tutorialHead{display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:10px}
+    .tutorialTitle{margin:0; font-size:16px; letter-spacing:.2px}
+    .tutorialClose{cursor:pointer; border:1px solid var(--border); background: rgba(15,23,42,.55); color:var(--text); border-radius:12px; padding:6px 10px; line-height:1}
+    .tutorialGrid{display:grid; grid-template-columns: 1.2fr 1fr; gap:12px}
+    @media (max-width: 980px){ .tutorialGrid{grid-template-columns:1fr} }
+    .tutorialBlock{
+      background: rgba(17,28,54,.55);
+      border:1px solid rgba(148,163,184,.12);
+      border-radius:14px;
+      padding:12px;
+    }
+    .tutorialBlock h3{margin:0 0 8px 0; font-size:13px; color:var(--text)}
+    .tutorialBlock ul{margin:0; padding-left:18px; color:var(--muted); font-size:13px}
+    .tutorialBlock li{margin:6px 0}
+    .tutorialKbd{font-family:var(--mono); font-size:12px; color:var(--text); background: rgba(96,165,250,.14); border:1px solid rgba(96,165,250,.22); padding:1px 6px; border-radius:8px}
+    .tutorialActions{display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; margin-top:12px}
+    .btn.small{padding:8px 10px; border-radius:12px}
+    .btn.ghost{background: rgba(15,23,42,.35)}
+
+
+    /* Performance mode: virtualized rows (fixed height + ellipsis) */
+    .viewer.perf .msg{
+      height: var(--rowH, 32px);
+      padding: 6px 10px;
+      overflow:hidden;
+      align-items:center;
+    }
+    .viewer.perf .text{
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .viewer.perf .ts, .viewer.perf .chan{
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    
+    .perfPreview{
+      border-top:1px solid rgba(148,163,184,.18);
+      background: rgba(15,23,42,.72);
+      backdrop-filter: blur(6px);
+      padding: 8px 10px;
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      position: relative;
+      min-height: 42px;
+    }
+    .perfPreviewHint{
+      color: rgba(226,232,240,.85);
+      font-size: 13px;
+      white-space: nowrap;
+      flex: 0 0 auto;
+      align-self: center;
+    }
+    .perfPreviewBody{
+      color: rgba(241,245,249,.95);
+      font-size: 13px;
+      line-height: 1.25rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+      flex: 1 1 auto;
+      max-height: 140px;
+      overflow: auto;
+      padding-right: 28px;
+    }
+    .perfPreviewClose{
+      position:absolute;
+      right: 8px;
+      top: 6px;
+      width: 24px;
+      height: 24px;
+      border-radius: 8px;
+      border: 1px solid rgba(148,163,184,.25);
+      background: rgba(2,6,23,.35);
+      color: rgba(241,245,249,.9);
+      cursor:pointer;
+    }
+    .perfPreviewClose:hover{ background: rgba(2,6,23,.55); }
+
+    .v-resize{height:10px; cursor:row-resize; background: rgba(148,163,184,.06); border-top:1px solid rgba(148,163,184,.18); border-bottom:1px solid rgba(148,163,184,.12);}
+    .v-resize:hover{background: rgba(96,165,250,.10);}
+    .v-resize:active{background: rgba(96,165,250,.16);}
+
+    .msg{
+      display:grid; grid-template-columns: 26px 170px 130px 1fr; gap:10px;
+      border-left: 4px solid var(--cEdge, transparent);
+      padding:10px 12px; border-bottom:1px solid rgba(148,163,184,.10);
+      font-family: var(--mono); font-size: 13px; line-height:1.35;
+    }
+
+    /* Pinned messages */
+    .pinBtn{
+      width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center;
+      border:1px solid rgba(148,163,184,.25);
+      background: rgba(15,23,42,.35);
+      color: rgba(226,232,240,.75);
+      border-radius: 8px;
+      cursor:pointer;
+      font-size: 13px;
+      line-height: 1;
+      padding:0;
+      user-select:none;
+    }
+    .pinBtn:hover{ background: rgba(96,165,250,.12); border-color: rgba(96,165,250,.35); color: rgba(226,232,240,.92); }
+    .pinBtn.pinned{
+      background: rgba(34,197,94,.16);
+      border-color: rgba(34,197,94,.55);
+      color: rgba(187,247,208,.95);
+    }
+    .msg .pinCell{ display:flex; align-items:center; justify-content:center; }
+    .pinnedBar{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(148,163,184,.18);
+      background: rgba(15,23,42,.55);
+      backdrop-filter: blur(6px);
+      color: rgba(226,232,240,.9);
+      font-size: 12px;
+    }
+    .pinnedBar .left{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .pinnedBar .right{ display:flex; align-items:center; gap:8px; }
+    .btn.pinClear{ background: rgba(251,113,133,.15); border-color: rgba(251,113,133,.35); }
+    .btn.pinClear:hover{ background: rgba(251,113,133,.22); }
+    .msg:hover{background: rgba(96,165,250,.06)}
+
+    /* TTS phrase highlight */
+    .msg.tts-speaker{
+      background: rgba(245,158,11,.08);
+      box-shadow: inset 0 0 0 1px rgba(245,158,11,.22);
+    }
+    .msg.tts-hit{
+      background: rgba(245,158,11,.14);
+      box-shadow: inset 0 0 0 2px rgba(245,158,11,.35);
+    }
+
+    /* Alert rules UI */
+    .rulesList{display:flex; flex-direction:column; gap:8px; margin-top:10px;}
+    .ruleItem{border:1px solid rgba(148,163,184,.16); background: rgba(15,23,42,.32); border-radius:12px; padding:10px 10px; display:flex; gap:10px; align-items:flex-start; justify-content:space-between;}
+    .ruleMain{display:flex; gap:10px; align-items:flex-start; flex:1; min-width:0;}
+    .ruleMain input[type="checkbox"]{transform: translateY(2px);}
+    .ruleText{min-width:0;}
+    .ruleName{font-weight:700; font-size:13px; color:var(--text);}
+    .ruleDesc{font-size:12px; color:var(--muted); margin-top:2px; word-break:break-word;}
+    .ruleBtns{display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;}
+    .miniBtn{padding:8px 10px; border-radius:10px; font-size:12px;}
+    .fieldGrid{display:grid; grid-template-columns:1fr; gap:10px; margin-top:10px;}
+    @media(min-width:960px){ .fieldGrid{grid-template-columns:1fr 1fr;} }
+    .fieldGrid .full{grid-column:1 / -1;}
+    .smallInput{padding:8px 10px; border-radius:10px;}
+    .ts{color: var(--muted)}
+    .chan{display:inline-flex; align-items:center; gap:8px; white-space:nowrap;}
+    .pill{
+      display:inline-flex; align-items:center; border-radius: 999px;
+      padding:2px 8px;
+      border:1px solid var(--cBorder, rgba(148,163,184,.22));
+      background: var(--cBg, rgba(15,23,42,.6));
+      color: var(--text);
+      font-size: 13px;
+    }
+    .pill.status{border-color: rgba(245,158,11,.35); background: rgba(245,158,11,.10)}
+    .pill.global{border-color: rgba(96,165,250,.35); background: rgba(96,165,250,.10)}
+    .pill.help{border-color: rgba(34,197,94,.35); background: rgba(34,197,94,.10)}
+    .pill.nearby{border-color: rgba(244,63,94,.30); background: rgba(244,63,94,.10)}
+    .from{color: var(--c, #cbd5e1); font-weight:600}
+    .text{white-space:pre-wrap; word-break:break-word; color: var(--c, var(--text))}
+    .statusLine{color: var(--c, #fcd34d)}
+    .foot{
+      padding:10px 12px; display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap;
+      border-top:1px solid var(--border); background: rgba(17,28,54,.25); color: var(--muted); font-size: 12px;
+    }
+    .k{display:inline-flex; gap:6px; align-items:center; padding: 6px 10px; border-radius: 999px;
+      border:1px solid rgba(148,163,184,.20); background: rgba(15,23,42,.45); color: var(--muted); font-family: var(--mono); font-size: 12px;}
+    .sep{opacity:.35}
+
+    .folderBox{
+      width:100%;
+      border:1px solid rgba(148,163,184,.20);
+      background: rgba(11,16,32,.20);
+      border-radius: 12px;
+      padding: 12px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      text-align:left;
+    }
+
+    .bottomBar{
+      width:100%;
+      border:1px solid rgba(148,163,184,.20);
+      background: rgba(11,16,32,.28);
+      border-radius: 12px;
+      padding: 10px 10px;
+      margin-top: 10px;
+      /* Non-sticky: stays in normal flow like older builds */
+      position: static;
+    }
+    /* Pastel section backgrounds */
+    #folderBox{background: rgba(96,165,250,.10); border-color: rgba(96,165,250,.28);}
+    #channelColorsBox{background: rgba(34,197,94,.10); border-color: rgba(34,197,94,.26);}
+    #combatBox{background: rgba(244,63,94,.10); border-color: rgba(244,63,94,.26);}
+    #ttsBox{background: rgba(168,85,247,.10); border-color: rgba(168,85,247,.26);}
+    #alertsBox{background: rgba(245,158,11,.10); border-color: rgba(245,158,11,.28);}
+    #folderBox .folderHeader .label,
+    #channelColorsBox .folderHeader .label,
+    #combatBox .folderHeader .label,
+    #ttsBox .folderHeader .label,
+    #alertsBox .folderHeader .label{font-size:16px;}
+    
+    .folderHeader{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;; padding-bottom:6px; border-bottom:1px solid rgba(148,163,184,.18);}
+    .folderHeader .label{color:var(--text); font-size:15px; font-weight:700; letter-spacing:.2px;}
+    .folderHeader .note{color:var(--muted); font-size:12px;}
+    .fileList{
+      max-height: 180px;
+      overflow:auto;
+      border:1px solid rgba(148,163,184,.12);
+      border-radius: 10px;
+      background: rgba(15,23,42,.35);
+    }
+    .fileItem{
+      padding:8px 10px;
+      border-bottom:1px solid rgba(148,163,184,.10);
+      cursor:pointer;
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--text);
+    }
+    .fileItem:hover{background: rgba(96,165,250,.06)}
+    .fileItem:last-child{border-bottom:none}
+    .fileMeta{color:var(--muted); font-family: var(--sans); font-size:12px; white-space:nowrap;}
+    .warn{
+      border:1px solid rgba(245,158,11,.25);
+      background: rgba(245,158,11,.08);
+      color: #fde68a;
+      padding:10px 12px;
+      border-radius: 12px;
+      width:100%;
+      font-size: 13px;
+      text-align:left;
+    }
+    code{font-family:var(--mono)}
+  
+    .colorList{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      max-height: 220px;
+      overflow:auto;
+      padding: 8px;
+      border:1px solid rgba(148,163,184,.12);
+      border-radius: 10px;
+      background: rgba(15,23,42,.35);
+    }
+    .colorRow{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding: 8px 10px;
+      border:1px solid rgba(148,163,184,.10);
+      border-radius: 10px;
+      background: rgba(11,16,32,.20);
+    }
+    .colorRow .name{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-size: 13px;
+      font-family: var(--mono);
+      color: var(--text);
+    }
+    .dot{
+      width:10px;
+      height:10px;
+      border-radius:999px;
+      background: var(--dot, rgba(148,163,184,.55));
+      box-shadow: 0 0 0 3px rgba(0,0,0,.15);
+      border: 1px solid rgba(148,163,184,.18);
+      flex: 0 0 auto;
+    }
+    .colorRow input[type="color"]{
+      padding:0;
+      width:40px;
+      height:28px;
+      border-radius: 8px;
+      border:1px solid rgba(148,163,184,.22);
+      background: transparent;
+      cursor:pointer;
+    }
+    .colorRow .mini{
+      font-family: var(--sans);
+      font-size: 13px;
+      color: var(--muted);
+      white-space:nowrap;
+    }
+
+  
+    .subwrap{display:flex; flex-direction:column; gap:2px; min-width:0;}
+    .subrow{display:flex; align-items:baseline; gap:12px; min-width:0;}
+    .subrow .sub{flex: 1 1 auto; min-width:0; padding-right:64px;}
+    .madeby{color:var(--muted); font-size:13px; white-space:nowrap; margin-left:auto; padding-left:56px;}
+    .sub.privacy{color:var(--muted); font-size:12px;}
+
+  
+    .btnRow{display:flex; gap:10px; flex-wrap:nowrap; align-items:center;}
+
+    /* Collapsible section toggles (minimize/expand) */
+    .secToggle{
+      border:1px solid var(--border);
+      background:rgba(15,23,42,.35);
+      color:var(--text);
+      padding:6px 10px;
+      border-radius:10px;
+      cursor:pointer;
+      font-weight:800;
+      line-height:1;
+      user-select:none;
+    }
+    .secToggle:hover{filter:brightness(1.08);}
+    .secToggle:active{transform:translateY(1px);}
+    .secBody{margin-top:10px;}
+    .secBody.isCollapsed{display:none;}
+
+
+    /* Independent scrollbar for the whole Input panel (left side) */
+    @media(min-width:960px){
+      .inputCard{max-height: calc(100vh - 120px); display:flex; flex-direction:column;}
+      .inputCard > header{flex:0 0 auto;}
+      .inputCard .body{flex:1 1 auto; overflow:auto;}
+    }
+
+  
+    /* Combat Summary */
+    .combatTotals{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:8px;
+      margin: 10px 0 12px 0;
+    }
+    .combatTotals .cell{
+      border:1px solid var(--border);
+      background: rgba(15,23,42,.25);
+      border-radius: 12px;
+      padding: 8px 10px;
+      font-size: 12px;
+      color: var(--text);
+    }
+    .combatTotals .cell .muted{font-size:11px}
+    .combatGrid{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+    .combatGrid > div{min-width:0}
+    .combatTotals .cell{min-width:0}
+    .subHead{font-weight:900; font-size:12px; letter-spacing:.2px; color:var(--text); margin: 4px 0 6px 0}
+    .combatList{display:flex; flex-direction:column; gap:6px}
+    .combatRow{
+      display:flex; justify-content:space-between; align-items:center;
+      gap:10px;
+      border:1px solid var(--border);
+      background: rgba(15,23,42,.22);
+      border-radius: 12px;
+      padding: 7px 8px;
+      cursor:pointer;
+      user-select:none;
+    }
+    .combatRow:hover{border-color: rgba(96,165,250,.35); background: rgba(15,23,42,.30)}
+    .combatRow .name{
+      flex:1;
+      min-width:0;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      font-size:12px;
+      color: var(--text);
+    }
+    .combatRow .num{
+      font-variant-numeric: tabular-nums;
+      font-size:12px;
+      color: var(--muted);
+      white-space:nowrap;
+    }
+
+    .combatRow.mobRow .num{display:flex; gap:10px; justify-content:flex-end; min-width: 92px}
+
+/* Recent Mobs: show full mob names without ugly mid-letter breaks */
+.combatRow.mobRow{align-items:flex-start;}
+.combatRow.mobRow .name{
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+
+  /* Prefer wrapping at spaces; only break inside a word if it's truly too long */
+  word-break: normal;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+    .combatRow.mobRow .num .ttk{font-variant-numeric: tabular-nums}
+    .combatRow.mobRow .num .dmg{font-variant-numeric: tabular-nums}
+
+    .combatRecent{display:flex; flex-direction:column; gap:6px; max-height: 180px; overflow:auto; padding-right:4px}
+    .combatRecent{overflow-x:hidden}
+    .combatHit{
+      border:1px solid var(--border);
+      background: rgba(15,23,42,.18);
+      border-radius: 12px;
+      padding: 7px 8px;
+      cursor:pointer;
+      user-select:none;
+      display:flex;
+      gap:10px;
+      align-items:baseline;
+    }
+    .combatHit:hover{border-color: rgba(96,165,250,.35); background: rgba(15,23,42,.28)}
+    .combatHit .t{font-size:11px; color: var(--muted); width:64px; flex:0 0 64px; font-variant-numeric: tabular-nums}
+    .combatHit .t{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+    .combatHit .d{font-size:12px; color: var(--text); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+    .combatHit .d{min-width:0}
+    .combatHit .v{font-size:12px; color: var(--muted); flex:0 0 auto; font-variant-numeric: tabular-nums; white-space:nowrap}
+
+    .secBody[data-sec-body="combatBox"]{overflow-x:hidden}
+
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="title">
+        <h1>Project Gorgon — Live Chat Log Viewer</h1>
+        <div class="subwrap">
+  <div class="subrow">
+    <span class="sub">Tabs are built from the [Channel] values in your log.</span>
+    <span class="madeby">Made by Peteski V1.6</span>
+  </div>
+  <div class="sub privacy">Privacy: nothing is uploaded — it runs in your browser</div>
+</div>
+      </div>
+
+      <div class="controls">
+<label class="btn" for="file">📄 Load log file</label>
+        <input id="file" type="file" accept=".log,.txt,text/plain" />
+        <button class="btn" id="clear">🧹 Clear</button>
+        <button class="btn" id="tutorialBtn" title="Show a quick tutorial">❔ Tutorial</button>
+        <span class="chip"><b id="count">0</b> lines</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="grid">
+
+    <section class="card inputCard">
+      <header class="wrap" style="padding:12px 14px">
+        <h2>Input</h2>
+      </header>
+
+      <div class="body">
+        <div id="drop" class="drop">
+
+          <div style="font-size:14px;color:var(--text)">Drop your chat log here</div>
+
+          <div class="folderBox" id="folderBox">
+            <div class="folderHeader">
+              <div>
+                <div class="label">Folder picker (recommended)</div>
+                <div class="note" id="folderNote">Choose a folder containing your chat logs, then pick a file below.</div>
+              </div>
+              <div class="btnRow">
+                <button class="btn" id="chooseFolder">📁 Choose folder</button>
+                <button class="btn" id="grantAccess" title="Grant permission to access the previously selected folder" disabled>🔓 Grant access</button>
+                <button class="btn" id="refreshFolder" title="Re-scan the chosen folder" disabled>🔄 Refresh</button>
+                <button class="secToggle" id="toggle_folderBox" data-sec="folderBox" type="button" title="Collapse/expand this section">▾</button>
+              </div>
+            </div>
+
+            <div class="secBody" data-sec-body="folderBox">
+
+            <div id="browserNote" class="warn" style="display:none"></div>
+
+            <div id="folderWarning" class="warn" style="display:none"></div>
+            <div class="fileList" id="fileList" aria-label="Chat log files"></div>
+
+            <div class="muted" id="hint" style="padding:6px 2px">Tip: Newest logs are usually at the Top.</div>
+
+            <div class="row">
+              <input id="search" type="text" placeholder="Search text (filters current tab)…" class="grow" />
+            </div>
+
+            </div><!-- /secBody folderBox -->
+          </div>
+
+          
+
+<div class="folderBox" style="padding:12px" id="channelColorsBox">
+              <div class="folderHeader">
+                <div>
+                  <div class="label">Channel colours</div>
+                  <div class="note">Optional: customise colours per channel (saved on this device).</div>
+                </div>
+                <div>
+                  <button class="secToggle" id="toggle_channelColorsBox" data-sec="channelColorsBox" type="button" title="Collapse/expand this section">▸</button>
+                </div>
+              </div>
+              <div class="secBody" data-sec-body="channelColorsBox">
+                <div id="colorList" class="colorList" aria-label="Channel colour pickers"></div>
+              </div>
+            </div>            
+            <div class="folderBox" style="padding:12px" id="combatBox">
+              <div class="folderHeader">
+                <div>
+                  <div class="label">⚔ Combat Summary</div>
+                  <div class="note">Summarises Combat lines (spell, mob, damage) so you can review later.</div>
+                </div>
+                <div>
+                  <button class="secToggle" id="toggle_combatBox" data-sec="combatBox" type="button" title="Collapse/expand this section">▸</button>
+                </div>
+              </div>
+              <div class="secBody" data-sec-body="combatBox">
+                <div class="muted" style="font-size:12px;margin:2px 0 10px 0">
+                  Looks for messages like <code>Name: Spell on Mob #123! Dmg: 54 health, 54 armor</code> inside the <b>Combat</b> channel.
+                </div>
+
+                <div class="row" style="gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap">
+                  <span class="k">Player:</span>
+                  <span id="combatPlayer" class="pill" style="font-size:12px;padding:2px 8px">—</span>
+                  <span class="sep">•</span>
+                  <span class="k">Stats for:</span>
+                  <select id="combatSource" style="min-width:240px">
+                    <option value="player">Player</option>
+                  </select>
+                  <button class="btn small ghost" id="combatSourcePopout" type="button" title="Pop out a window for this combat source (filters Combat by attacker)">↗ Pop out</button>
+                </div>
+
+                <div class="row" style="gap:8px; margin-bottom:8px">
+                  <input id="combatSpell" type="text" placeholder="Spell filter (optional)…" class="grow" />
+                  <button class="btn small ghost" id="combatClearSpell" type="button" title="Clear spell filter">Clear</button>
+                </div>
+
+                <div class="row" style="gap:8px; margin-bottom:8px">
+                  <input id="combatMob" type="text" placeholder="Mob filter (optional)…  (you can include the #id)" class="grow" />
+                  <button class="btn small ghost" id="combatClearMob" type="button" title="Clear mob filter">Clear</button>
+                </div>
+
+                <div class="row" style="gap:12px; align-items:center; margin-bottom:10px">
+                  <label class="chk"><input id="combatIncHealth" type="checkbox" checked /> Include health</label>
+                  <label class="chk"><input id="combatIncArmor" type="checkbox" checked /> Include armor</label>
+                  <button class="btn small" id="combatReset" type="button" title="Clear Combat Summary so it starts fresh from the next new Combat lines">Reset</button>
+                  <span class="muted" style="font-size:12px">Tip: click a row below to auto-fill the filters.</span>
+                </div>
+
+                <div id="combatTotals" class="combatTotals"></div>
+
+                <div class="combatGrid">
+                  <div>
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:4px">
+                      <div class="subHead" style="margin:0">Top Attacks</div>
+                      <select id="combatTopAttacksLimit" title="How many attacks to show" style="padding:4px 8px; border-radius:10px; border:1px solid var(--border); background: rgba(15,23,42,.55); color: var(--text); font-size:12px">
+                        <option value="5">5</option>
+                        <option value="10" selected>10</option>
+                        <option value="15">15</option>
+                      </select>
+                    </div>
+                    <div id="combatTopSpells" class="combatList"></div>
+                  </div>
+                  <div>
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:4px">
+                      <div class="subHead" style="margin:0">Recent Mobs</div>
+                      <select id="combatRecentMobsLimit" title="How many mobs to show" style="padding:4px 8px; border-radius:10px; border:1px solid var(--border); background: rgba(15,23,42,.55); color: var(--text); font-size:12px">
+                        <option value="5">5</option>
+                        <option value="10" selected>10</option>
+                        <option value="15">15</option>
+                      </select>
+                    </div>
+                    <div id="combatTopMobs" class="combatList"></div>
+                  </div>
+                </div>
+
+                <div style="margin-top:10px">
+                  <div class="subHead">Recent Hits (click to jump)</div>
+                  <div id="combatRecent" class="combatRecent"></div>
+                </div>
+
+              </div>
+              <div id="combatResize" class="v-resize" title="Drag to resize Combat Summary height (double-click to reset)"></div>
+            </div>
+
+<div class="folderBox" style="padding:12px" id="ttsBox">
+              <div class="folderHeader">
+                <div>
+                  <div class="label">Read aloud (text-to-speech)</div>
+                  <div class="note">Speak message text after the speaker name (detected as <code>Name:</code>) from a channel and/or speaker.</div>
+                </div>
+                <div>
+                  <button class="secToggle" id="toggle_ttsBox" data-sec="ttsBox" type="button" title="Collapse/expand this section">▸</button>
+                </div>
+              </div>
+              <div class="secBody" data-sec-body="ttsBox">
+<div class="row">
+                <input id="ttsChannel" type="text" placeholder="Channel(s) (comma-separated, e.g. Global, Help, Guild)" class="grow" />
+              </div>
+
+              <div class="row">
+                <input id="ttsSpeaker" type="text" placeholder="Speaker (e.g. Zewtastic or Zewtastic:)" class="grow" />
+              </div>
+
+
+              <div class="row">
+                <input id="ttsPhrase" type="text" placeholder="Trigger phrase (e.g. egg run)" class="grow" />
+              </div>
+
+              <div class="muted" style="font-size:12px; padding:2px 2px 6px">
+                Tip: Leave boxes blank to read everything in the selected scope.
+              </div>
+
+              <div class="row">
+                <label class="chip" title="When enabled, Play will start from the bottom and only read NEW matching messages as they arrive (live).">
+                  <input id="ttsLive" type="checkbox" checked />
+                  <span>Live (from now)</span>
+                </label>
+              </div>
+              <div class="row">
+                <label class="chip" title="Where to search for messages">
+                  <span>Scope</span>
+                  <select id="ttsScope" style="padding:8px 10px">
+                    <option value="tab" selected>Current tab</option>
+                    <option value="all">All channels</option>
+                  </select>
+                </label>
+                <label class="chip" title="Include the [Channel] in what is spoken">
+                  <input id="ttsSayChannel" type="checkbox" />
+                  <span>Say channel</span>
+                </label>
+              </div>
+
+              <div class="row">
+                <label class="chip" title="Voice used by your browser">
+                  <span>Voice</span>
+                  <select id="ttsVoice" style="padding:8px 10px; max-width: 280px"></select>
+                </label>
+                <label class="chip" title="Speaking speed">
+                  <span>Speed</span>
+                  <select id="ttsRate" style="padding:8px 10px">
+                    <option value="0.8">0.8×</option>
+                    <option value="0.9">0.9×</option>
+                    <option value="1" selected>1.0×</option>
+                    <option value="1.1">1.1×</option>
+                    <option value="1.25">1.25×</option>
+                    <option value="1.4">1.4×</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="row">
+                <button class="btn" id="ttsPlay">🔊 Play</button>
+                <button class="btn" id="ttsTest" title="Speak a short test phrase to confirm your browser audio/voice works">🧪 Test</button>
+                <button class="btn" id="ttsPause" disabled>⏸ Pause</button>
+                <button class="btn" id="ttsStop" disabled>⏹ Stop</button>
+                <span class="muted" id="ttsStatus" style="font-size:13px; opacity:.95"></span>
+              </div>
+
+              </div>
+            </div>
+
+            <div class="folderBox" style="padding:12px" id="alertsBox">
+              <div class="folderHeader">
+                <div>
+                  <div class="label">Alert rules</div>
+                  <div class="note">Create multiple rules that can speak and/or highlight when new messages match (works with live auto-refresh).</div>
+                </div>
+              <div>
+                  <button class="secToggle" id="toggle_alertsBox" data-sec="alertsBox" type="button" title="Collapse/expand this section">▸</button>
+                </div>
+              </div>
+
+              <div class="secBody" data-sec-body="alertsBox">
+
+              <div class="row">
+                <label class="chip chipAccent" title="Enable your saved alert rules">
+                  <input id="alertsEnabled" type="checkbox" />
+                  <span>Enable alerts</span>
+                </label>
+                <button class="btn" id="alertsArm" title="Start listening from the bottom (ignore older lines)">⏱ Arm from now</button>
+                <span class="muted" id="alertsStatus" style="font-size:13px; opacity:.95"></span>
+              
+              <div class="mentionBox" style="margin-top:10px; padding:10px; border:1px solid var(--border); border-radius:12px; background: rgba(15,23,42,.45);">
+                <div class="row" style="justify-content:space-between; align-items:center;">
+                  <div>
+                    <div class="label">Mentions / My name</div>
+                    <div class="note">Speak/highlight when someone mentions your name(s) in chat (checks new messages during live updates).</div>
+                  </div>
+                  <label class="chip" title="Enable mention alerts">
+                    <input id="mentionsEnabled" type="checkbox" />
+                    <span>Enable mentions</span>
+                  </label>
+                </div>
+
+                <div class="fieldGrid" style="margin-top:8px">
+                  <div class="full">
+                    <input id="mentionsNames" type="text" class="grow smallInput" placeholder="Names (comma-separated, e.g. Zewtastic, Peteski)" />
+                  </div>
+
+                  <label class="chip" title="Where mention alerts apply">
+                    <span>Scope</span>
+                    <select id="mentionsScope" style="padding:8px 10px">
+                      <option value="tab">Current tab</option>
+                      <option value="all" selected>All channels</option>
+                    </select>
+                  </label>
+
+                  <label class="chip" title="Speak the message when a mention is detected">
+                    <input id="mentionsSpeak" type="checkbox" checked />
+                    <span>Speak</span>
+                  </label>
+                  <label class="chip" title="Highlight all messages from the speaker who mentioned you">
+                    <input id="mentionsHiSpeaker" type="checkbox" checked />
+                    <span>Highlight speaker</span>
+                  </label>
+                  <label class="chip" title="Highlight the line where your name was mentioned">
+                    <input id="mentionsHiLine" type="checkbox" checked />
+                    <span>Highlight line</span>
+                  </label>
+
+                  <div>
+                    <input id="mentionsDuration" type="text" class="grow smallInput" placeholder="Highlight seconds (e.g. 10)" value="20" />
+                  </div>
+                  <div>
+                    <input id="mentionsCooldown" type="text" class="grow smallInput" placeholder="Cooldown seconds (e.g. 1)" value="1" />
+                  </div>
+
+                  <div class="full row" style="margin-top:4px">
+                    <button class="btn" id="mentionsSave">💾 Save mentions</button>
+                    <span class="muted" id="mentionsStatus" style="font-size:12px"></span>
+                  </div>
+                </div>
+              </div>
+
+</div>
+
+              <div id="rulesList" class="rulesList" aria-label="Alert rules"></div>
+
+              <div class="row" style="margin-top:8px">
+                <button class="btn btnRuleAccent" id="addRule">➕ Add rule</button>
+              </div>
+
+              <div id="ruleEditor" style="display:none; margin-top:10px">
+                <div class="fieldGrid">
+                  <div class="full">
+                    <input id="ruleName" type="text" class="grow smallInput" placeholder="Rule name (e.g. Egg runs)" />
+                  </div>
+
+                  <label class="chip" title="Enable/disable this rule">
+                    <input id="ruleEnabled" type="checkbox" checked />
+                    <span>Enabled</span>
+                  </label>
+
+                  <label class="chip" title="Where this rule applies">
+                    <span>Scope</span>
+                    <select id="ruleScope" style="padding:8px 10px">
+                      <option value="tab">Current tab</option>
+                      <option value="all" selected>All channels</option>
+                    </select>
+                  </label>
+
+                  <div>
+                    <input id="ruleChannel" type="text" class="grow smallInput" placeholder="Channel(s), comma-separated (blank = any)" />
+                  </div>
+                  <div>
+                    <input id="ruleSpeaker" type="text" class="grow smallInput" placeholder="Speaker (blank = any)" />
+                  </div>
+                  <div class="full">
+                    <input id="rulePhrase" type="text" class="grow smallInput" placeholder="Phrase (blank = any, e.g. egg run)" />
+                  </div>
+
+                  <div class="full row">
+                    <label class="chip" title="Speak the message text when matched">
+                      <input id="ruleActSpeak" type="checkbox" checked />
+                      <span>Speak</span>
+                    </label>
+                                        <label class="chip" title="Include the [Channel] in what is spoken">
+                      <input id="ruleSayChannel" type="checkbox" />
+                      <span>Say channel</span>
+                    </label>
+<label class="chip" title="Highlight all messages from the matched speaker">
+                      <input id="ruleActHiSpeaker" type="checkbox" checked />
+                      <span>Highlight speaker</span>
+                    </label>
+                    <label class="chip" title="Highlight the triggering line">
+                      <input id="ruleActHiLine" type="checkbox" checked />
+                      <span>Highlight line</span>
+                    </label>
+                    <label class="chip" title="Play a custom sound when matched (instead of or in addition to speaking)">
+                      <input id="ruleActSound" type="checkbox" />
+                      <span>Play sound</span>
+                    </label>
+                  
+                  <div class="full row" style="margin-top:6px; gap:8px; flex-wrap:wrap">
+                    <label class="chip" title="How to shape the spoken text (only affects speech)">
+                      <span>Speak text</span>
+                      <select id="ruleSpeakMode" style="padding:8px 10px">
+                        <option value="full" selected>Full message</option>
+                        <option value="beforePhrase">Only before phrase</option>
+                        <option value="afterPhrase">Only after phrase</option>
+                        <option value="removePhrase">Remove phrase</option>
+                      </select>
+                    </label>
+                    <span class="muted" style="font-size:12px">Uses the Phrase field as the cut point.</span>
+                  
+                  <div class="full row" style="margin-top:8px; gap:8px; flex-wrap:wrap">
+                    <div class="grow" style="min-width:280px">
+                      <div class="muted" style="font-size:12px; margin-bottom:4px">Speech template (optional)</div>
+                      <input id="ruleSpeechTemplate" type="text" class="grow smallInput" style="width:100%" placeholder='e.g. Loot: {beforePhrase}' />
+                      <div class="muted" style="font-size:12px; margin-top:4px">
+                        Placeholders: <span style="font-family:var(--mono)">{channel}</span>, <span style="font-family:var(--mono)">{speaker}</span>, <span style="font-family:var(--mono)">{text}</span>, <span style="font-family:var(--mono)">{beforePhrase}</span>, <span style="font-family:var(--mono)">{afterPhrase}</span>
+                      </div>
+                    </div>
+                  </div>
+
+</div>
+
+<div class="full row" id="ruleSoundRow" style="margin-top:6px; display:none; gap:8px; flex-wrap:wrap">
+                    <button class="btn" id="ruleSoundChoose" type="button">🎵 Choose sound</button>
+                    <button class="btn" id="ruleSoundClear" type="button" title="Remove the saved sound for this rule">🧹 Clear</button>
+                    <span class="muted" id="ruleSoundLabel" style="font-size:12px">No sound selected</span>
+                    <input id="ruleSoundFile" type="file" accept="audio/*" style="display:none" />
+                  </div>
+
+
+                  <div>
+                    <input id="ruleDuration" type="text" class="grow smallInput" placeholder="Highlight seconds (e.g. 10)" value="20" />
+                  </div>
+                  <div>
+                    <input id="ruleCooldown" type="text" class="grow smallInput" placeholder="Cooldown seconds (e.g. 1)" value="1" />
+                  </div>
+
+                  <div class="full row" style="margin-top:4px">
+                    <button class="btn btnRuleAccent" id="ruleSave">💾 Save rule</button>
+                    <button class="btn" id="ruleCancel">✖ Cancel</button>
+                  </div>
+
+                  <div class="full muted" style="font-size:12px">
+                    Notes: rules only evaluate NEW lines as they arrive. Leave fields blank to match anything.
+                  </div>
+                </div>
+              </div>
+              </div>
+            </div>
+
+
+
+
+
+
+            
+
+
+        </div>
+
+<div class="muted">Fallback: load a single file via “Load log file”, or paste raw log text below.</div>
+
+          <div style="width:100%">
+            <textarea id="paste" placeholder="…or paste raw log text here, then click Parse Paste."></textarea>
+          </div>
+
+          <div class="row" style="width:100%">
+            <button class="btn" id="parsePaste">✂️ Parse Paste</button>
+          </div>
+
+          <div class="bottomBar" id="liveControlsBar">
+            <div class="row">
+                          <label class="chip"><input id="autoscroll" type="checkbox" checked /> <span>Auto-scroll</span></label>
+                          <label class="chip"><input id="compact" type="checkbox" /> <span>Compact view</span></label>
+                          <label class="chip" title="Performance mode uses virtualized rendering for huge logs (keeps full history)"><input id="performance" type="checkbox" /> <span>Performance mode</span></label>
+                          <label class="chip"><input id="autoRefresh" type="checkbox" checked /> <span>Auto-refresh</span></label>
+                          <label class="chip" title="How often to check the log file for new lines">
+                            <span>Every</span>
+                            <select id="refreshInterval" style="padding:8px 10px">
+                              <option value="1000" selected>1s</option>
+                              <option value="2000">2s</option>
+                              <option value="5000">5s</option>
+                              <option value="10000">10s</option>
+                              <option value="30000">30s</option>
+                            </select>
+                          </label>
+              
+                        </div>
+
+            
+          </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="tabs" id="tabs"></div>
+      <div id="pinnedBar" class="pinnedBar" style="display:none"></div>
+      <div class="viewerWrap" id="viewerWrap">
+        <div class="viewer" id="viewer"></div>
+        <div id="tutorialOverlay" class="tutorialOverlay" style="display:none"></div>
+      </div>
+      <div id="viewerResize" class="v-resize" title="Drag to resize the chat window"></div>
+      <div id="perfPreview" class="perfPreview" style="display:none;">
+        <div class="perfPreviewHint" id="perfPreviewHint">Performance mode: click a message to view the full text.</div>
+        <div class="perfPreviewBody" id="perfPreviewBody"></div>
+        <button class="perfPreviewClose" id="perfPreviewClose" title="Close">×</button>
+      </div>
+      <div class="foot">
+        <div class="row">
+          <span class="k">Esc: <span class="sep">clear</span> search</span>
+          <span class="k">Ctrl/Cmd+Enter: <span class="sep">toggle</span> Auto-scroll</span>
+        </div>
+        <div class="row">
+          <span id="stats">No data loaded.</span>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<script>
+const state = {
+
+  pinned: new Map(), // pinKey -> snapshot
+  pinnedOrder: [], // array of pinKeys in pin order
+  all: [],
+  channels: new Map(),
+  unreadCounts: new Map(),
+  activeChannel: "All",
+  search: "",
+  combatFilters: { spell:"", mob:"", incHealth:true, incArmor:true, topAttackLimit:10, recentMobLimit:10, resetIndex:0 },
+  dirHandle: null,
+  colorOverrides: new Map(),
+  currentFileHandle: null,
+  currentFileName: "",
+  currentFileSize: 0,
+  tailRemainder: "",
+  refreshTimer: null,
+  nextId: 0,
+  // TTS/alerts highlight state (used by performance mode too)
+  ttsHiSpeakerKey: "",
+  ttsHiItemId: null,
+  ttsHiUntil: 0,
+
+  // Tutorial overlay state
+  tutorialOverride: null, // null=auto, true=force show, false=force hide
+  tutorialDismissed: false,
+};
+
+const el = {
+  pinnedBar: document.getElementById("pinnedBar"),
+  file: document.getElementById("file"),
+  drop: document.getElementById("drop"),
+  viewer: document.getElementById("viewer"),
+  viewerResize: document.getElementById("viewerResize"),
+  perfPreview: document.getElementById("perfPreview"),
+  perfPreviewBody: document.getElementById("perfPreviewBody"),
+  perfPreviewHint: document.getElementById("perfPreviewHint"),
+  perfPreviewClose: document.getElementById("perfPreviewClose"),
+  tabs: document.getElementById("tabs"),
+  count: document.getElementById("count"),
+  stats: document.getElementById("stats"),
+  tutorialBtn: document.getElementById("tutorialBtn"),
+  tutorialOverlay: document.getElementById("tutorialOverlay"),
+  search: document.getElementById("search"),
+  paste: document.getElementById("paste"),
+  parsePaste: document.getElementById("parsePaste"),
+  clear: document.getElementById("clear"),
+  autoscroll: document.getElementById("autoscroll"),
+  compact: document.getElementById("compact"),
+  performance: document.getElementById("performance"),
+  autoRefresh: document.getElementById("autoRefresh"),
+  refreshInterval: document.getElementById("refreshInterval"),
+  chooseFolder: document.getElementById("chooseFolder"),
+  refreshFolder: document.getElementById("refreshFolder"),
+  grantAccess: document.getElementById("grantAccess"),
+  fileList: document.getElementById("fileList"),
+  browserNote: document.getElementById("browserNote"),
+  folderWarning: document.getElementById("folderWarning"),
+  folderNote: document.getElementById("folderNote"),
+  colorList: document.getElementById("colorList"),
+  // Text-to-speech (read aloud)
+  ttsChannel: document.getElementById("ttsChannel"),
+  ttsSpeaker: document.getElementById("ttsSpeaker"),
+  ttsPhrase: document.getElementById("ttsPhrase"),
+  ttsLive: document.getElementById("ttsLive"),
+  ttsScope: document.getElementById("ttsScope"),
+  ttsSayChannel: document.getElementById("ttsSayChannel"),
+  ttsVoice: document.getElementById("ttsVoice"),
+  ttsRate: document.getElementById("ttsRate"),
+  ttsPlay: document.getElementById("ttsPlay"),
+  ttsTest: document.getElementById("ttsTest"),
+  ttsPause: document.getElementById("ttsPause"),
+  ttsStop: document.getElementById("ttsStop"),
+  ttsStatus: document.getElementById("ttsStatus"),
+
+  // Alert rules
+  alertsBox: document.getElementById("alertsBox"),
+
+  mentionsEnabled: document.getElementById("mentionsEnabled"),
+  mentionsNames: document.getElementById("mentionsNames"),
+  mentionsScope: document.getElementById("mentionsScope"),
+  mentionsSpeak: document.getElementById("mentionsSpeak"),
+  mentionsHiSpeaker: document.getElementById("mentionsHiSpeaker"),
+  mentionsHiLine: document.getElementById("mentionsHiLine"),
+  mentionsDuration: document.getElementById("mentionsDuration"),
+  mentionsCooldown: document.getElementById("mentionsCooldown"),
+  mentionsSave: document.getElementById("mentionsSave"),
+  mentionsStatus: document.getElementById("mentionsStatus"),
+  alertsEnabled: document.getElementById("alertsEnabled"),
+  alertsArm: document.getElementById("alertsArm"),
+  alertsStatus: document.getElementById("alertsStatus"),
+  rulesList: document.getElementById("rulesList"),
+  addRule: document.getElementById("addRule"),
+  ruleEditor: document.getElementById("ruleEditor"),
+  ruleName: document.getElementById("ruleName"),
+  ruleEnabled: document.getElementById("ruleEnabled"),
+  ruleScope: document.getElementById("ruleScope"),
+  ruleChannel: document.getElementById("ruleChannel"),
+  ruleSpeaker: document.getElementById("ruleSpeaker"),
+  rulePhrase: document.getElementById("rulePhrase"),
+  ruleSpeakMode: document.getElementById("ruleSpeakMode"),
+  ruleSpeechTemplate: document.getElementById("ruleSpeechTemplate"),
+  ruleActSpeak: document.getElementById("ruleActSpeak"),
+  ruleSayChannel: document.getElementById("ruleSayChannel"),
+  ruleActHiSpeaker: document.getElementById("ruleActHiSpeaker"),
+  ruleActHiLine: document.getElementById("ruleActHiLine"),
+  ruleActSound: document.getElementById("ruleActSound"),
+  ruleSoundRow: document.getElementById("ruleSoundRow"),
+  ruleSoundChoose: document.getElementById("ruleSoundChoose"),
+  ruleSoundClear: document.getElementById("ruleSoundClear"),
+  ruleSoundLabel: document.getElementById("ruleSoundLabel"),
+  ruleSoundFile: document.getElementById("ruleSoundFile"),
+  ruleDuration: document.getElementById("ruleDuration"),
+  ruleCooldown: document.getElementById("ruleCooldown"),
+  ruleSave: document.getElementById("ruleSave"),
+  ruleCancel: document.getElementById("ruleCancel"),
+  combatPlayer: document.getElementById("combatPlayer"),
+  combatSource: document.getElementById("combatSource"),
+  combatSourcePopout: document.getElementById("combatSourcePopout"),
+  combatSpell: document.getElementById("combatSpell"),
+  combatMob: document.getElementById("combatMob"),
+  combatClearSpell: document.getElementById("combatClearSpell"),
+  combatClearMob: document.getElementById("combatClearMob"),
+  combatIncHealth: document.getElementById("combatIncHealth"),
+  combatIncArmor: document.getElementById("combatIncArmor"),
+  combatReset: document.getElementById("combatReset"),
+  combatTopAttacksLimit: document.getElementById("combatTopAttacksLimit"),
+  combatRecentMobsLimit: document.getElementById("combatRecentMobsLimit"),
+  combatTotals: document.getElementById("combatTotals"),
+  combatTopSpells: document.getElementById("combatTopSpells"),
+  combatTopMobs: document.getElementById("combatTopMobs"),
+  combatRecent: document.getElementById("combatRecent"),
+};
+
+
+(function initBrowserNote(){
+  // Firefox (and some other browsers) don't support the File System Access API used for folder mode + live refresh.
+  const isFirefox = /firefox/i.test(navigator.userAgent);
+  const supportsFSAccess = ("showDirectoryPicker" in window) && ("FileSystemFileHandle" in window);
+
+  if(!el.browserNote) return;
+  if(isFirefox || !supportsFSAccess){
+    el.browserNote.style.display = "block";
+    el.browserNote.innerHTML =
+      "⚠️ <b>Browser note:</b> Folder picker + live auto-refresh use the File System Access API, which isn't available in Firefox. " +
+      "You can still <b>drag & drop</b> or <b>Load log file</b>, but for live updating use <b>Chrome</b>, <b>Edge</b>, or <b>Opera</b>.";
+  }
+})();
+
+
+// -----------------------------
+// Viewer vertical resize (drag handle)
+// -----------------------------
+(function initViewerResize(){
+  if(!el.viewer || !el.viewerResize) return;
+
+  const KEY = "pg_viewer_height";
+  const root = document.documentElement;
+
+  function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+
+  function applyHeight(px, persist=true){
+    const minH = 220;
+    const maxH = Math.max(minH, window.innerHeight - 180);
+    const h = Math.round(clamp(px, minH, maxH));
+    root.style.setProperty("--viewerHeight", h + "px");
+    if(persist) localStorage.setItem(KEY, String(h));
+  }
+
+  // Load saved height (if any)
+  const saved = Number(localStorage.getItem(KEY));
+  if(Number.isFinite(saved) && saved > 0){
+    applyHeight(saved, false);
+  }
+
+  let dragging = false;
+  let startY = 0;
+  let startH = 0;
+
+  function onDown(e){
+    dragging = true;
+    startY = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
+    startH = el.viewer.getBoundingClientRect().height;
+    el.viewerResize.classList.add("dragging");
+    try{ el.viewerResize.setPointerCapture?.(e.pointerId); }catch(_){}
+    e.preventDefault();
+  }
+  function onMove(e){
+    if(!dragging) return;
+    const y = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
+    const delta = y - startY;
+    applyHeight(startH + delta, true);
+    e.preventDefault();
+  }
+  function onUp(e){
+    if(!dragging) return;
+    dragging = false;
+    el.viewerResize.classList.remove("dragging");
+    e.preventDefault();
+  }
+
+  el.viewerResize.addEventListener("pointerdown", onDown);
+  window.addEventListener("pointermove", onMove, {passive:false});
+  window.addEventListener("pointerup", onUp, {passive:false});
+
+  // Touch fallback
+  el.viewerResize.addEventListener("touchstart", onDown, {passive:false});
+  window.addEventListener("touchmove", onMove, {passive:false});
+  window.addEventListener("touchend", onUp, {passive:false});
+
+  // Double-click to reset
+  el.viewerResize.addEventListener("dblclick", () => {
+    localStorage.removeItem(KEY);
+    root.style.removeProperty("--viewerHeight");
+  });
+
+  // Keep within bounds on resize
+  window.addEventListener("resize", () => {
+    const cur = parseFloat(getComputedStyle(root).getPropertyValue("--viewerHeight"));
+    if(Number.isFinite(cur) && cur > 0) applyHeight(cur, false);
+  });
+})();
+
+// -----------------------------
+
+// -----------------------------
+// Combat Summary vertical resize (drag handle)
+// -----------------------------
+(function initCombatResize(){
+  const handle = document.getElementById("combatResize");
+  const body = document.querySelector('[data-sec-body="combatBox"]');
+  if(!handle || !body) return;
+
+  const KEY = "pg_combat_height";
+
+  function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+
+  function applyHeight(px, save=true){
+    const v = Math.round(px);
+    body.style.maxHeight = v + "px";
+    body.style.overflow = "auto";
+    if(save){
+      try{ localStorage.setItem(KEY, String(v)); }catch(_){}
+    }
+  }
+
+  function reset(){
+    body.style.maxHeight = "";
+    body.style.overflow = "";
+    try{ localStorage.removeItem(KEY); }catch(_){}
+  }
+
+  // Load saved
+  try{
+    const saved = Number(localStorage.getItem(KEY));
+    if(Number.isFinite(saved) && saved > 0) applyHeight(saved, false);
+  }catch(_){}
+
+  let dragging = false;
+  let startY = 0;
+  let startH = 0;
+
+  handle.addEventListener("mousedown", (e) => {
+    dragging = true;
+    startY = e.clientY;
+    startH = Math.max(120, body.getBoundingClientRect().height || 0);
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "row-resize";
+    e.preventDefault();
+  });
+
+  window.addEventListener("mousemove", (e) => {
+    if(!dragging) return;
+    const dy = e.clientY - startY;
+    const maxH = Math.max(180, window.innerHeight - 160);
+    const next = clamp(startH + dy, 140, maxH);
+    applyHeight(next, true);
+  });
+
+  window.addEventListener("mouseup", () => {
+    if(!dragging) return;
+    dragging = false;
+    document.body.style.userSelect = "";
+    document.body.style.cursor = "";
+  });
+
+  handle.addEventListener("dblclick", reset);
+})();
+
+// Read aloud (Text-to-Speech)
+// -----------------------------
+const tts = {
+  active: false,           // enabled (listening and/or reading)
+  live: false,             // live from-now mode
+  snapshot: null,          // captured filters at Play time
+  lastProcessedId: 0,      // last seen item id when live
+  queue: [],               // pending strings to speak
+  idx: 0,                  // used for non-live backlog mode
+  currentUtterance: null,
+  userPlaying: false        // UI highlight while Play session is active,
+};
+
+
+// Highlight messages in the viewer when a trigger phrase fires.
+function ttsApplyHighlight({speakerKey="", itemId=null, durationMs=20000, highlightSpeaker=true, highlightLine=true} = {}){
+  if(!el.viewer) return;
+
+  const norm = String(speakerKey || "");
+  const dur = Math.max(250, Number(durationMs) || 20000);
+
+  // Persist highlight state so virtualized rendering can apply it as rows are created
+  state.ttsHiSpeakerKey = (highlightSpeaker && norm) ? norm : "";
+  state.ttsHiItemId = (highlightLine && itemId != null) ? itemId : null;
+  state.ttsHiUntil = Date.now() + dur;
+
+  // Apply to currently rendered rows
+  for(const r of el.viewer.querySelectorAll(".msg.tts-speaker")) r.classList.remove("tts-speaker");
+  for(const r of el.viewer.querySelectorAll(".msg.tts-hit")) r.classList.remove("tts-hit");
+
+  for(const r of el.viewer.querySelectorAll(".msg")){
+    if(state.ttsHiSpeakerKey && (r.dataset.fromkey || "") === state.ttsHiSpeakerKey) r.classList.add("tts-speaker");
+    if(state.ttsHiItemId != null && (r.dataset.id || "") === String(state.ttsHiItemId)) r.classList.add("tts-hit");
+  }
+
+  // Auto-clear after duration
+  clearTimeout(ttsApplyHighlight._t);
+  ttsApplyHighlight._t = setTimeout(() => {
+    state.ttsHiSpeakerKey = "";
+    state.ttsHiItemId = null;
+    state.ttsHiUntil = 0;
+    if(!el.viewer) return;
+    for(const r of el.viewer.querySelectorAll(".msg.tts-speaker")) r.classList.remove("tts-speaker");
+    for(const r of el.viewer.querySelectorAll(".msg.tts-hit")) r.classList.remove("tts-hit");
+  }, dur);
+}
+
+
+
+function ttsSupported(){
+  return !!(window.speechSynthesis && window.SpeechSynthesisUtterance);
+}
+function ttsSetStatus(msg){
+  if(el.ttsStatus) el.ttsStatus.textContent = msg || "";
+}
+function ttsSetButtons(){
+  const speaking = ttsSupported() && (speechSynthesis.speaking || speechSynthesis.pending);
+  if(el.ttsPause) el.ttsPause.disabled = !(tts.active && speaking);
+  if(el.ttsStop) el.ttsStop.disabled = !(tts.active || speaking);
+  if(el.ttsPlay) el.ttsPlay.disabled = !ttsSupported();
+  if(el.ttsPlay) el.ttsPlay.classList.toggle("playing", !!tts.userPlaying);
+  if(el.ttsTest) el.ttsTest.disabled = !ttsSupported();
+  if(el.ttsPause){
+    el.ttsPause.textContent = (ttsSupported() && speechSynthesis.paused) ? "▶️ Resume" : "⏸ Pause";
+  }
+}
+
+function ttsNormalizeName(s){
+  return (s || "").trim().replace(/:+\s*$/,"").trim();
+}
+function ttsNormalizeChannelName(s){
+  let x = (s || "").trim().replace(/^\[|\]$/g,"");
+  if(!x) return "";
+  return normalizeChannel(x);
+}
+function parseChannelList(s){
+  const raw = (s || "").trim();
+  if(!raw) return [];
+  // Comma-separated list. Example: "Global, Help, Tell"
+  const parts = raw.split(",").map(x => (x || "").trim()).filter(Boolean);
+  // Treat "All", "Any" or "*" as no channel restriction
+  if(parts.some(p => {
+    const t = p.toLowerCase();
+    return t === "all" || t === "any" || t === "*";
+  })) return [];
+  return parts
+    .map(x => ttsNormalizeChannelName(x).toLowerCase())
+    .filter(Boolean);
+}
+function ttsNormalizeKey(s){
+  return (s || "").toLowerCase().trim()
+    .replace(/:+\s*$/,"")
+    .replace(/\s+/g," ");
+}
+function ttsEscapeRegExp(s){
+  return (s || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function ttsNormalizePhrase(s){
+  return (s || "").trim().toLowerCase().replace(/\s+/g," ");
+}
+
+function ttsSpeakerOf(it){
+  if(it && it.from) return String(it.from);
+  const raw = String((it && (it.raw ?? it.text)) ?? "");
+  // Try "...[Channel] Name: message"
+  let m = raw.match(/\]\s*([^:]{1,60}):\s*/);
+  if(m) return m[1].trim();
+  // Try "Name: message" at start (pasted/unparsed lines)
+  m = raw.match(/^([^:]{1,60}):\s*/);
+  if(m) return m[1].trim();
+  return "";
+}
+
+function ttsPopulateVoices(){
+  if(!el.ttsVoice) return;
+  const voices = speechSynthesis.getVoices ? speechSynthesis.getVoices() : [];
+  el.ttsVoice.innerHTML = "";
+  if(!voices.length){
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "Default";
+    el.ttsVoice.appendChild(opt);
+    return;
+  }
+
+  // Prefer English voices first, then everything else (stable ordering)
+  const sorted = [...voices].sort((a,b) => {
+    const ae = (a.lang || "").toLowerCase().startsWith("en") ? 0 : 1;
+    const be = (b.lang || "").toLowerCase().startsWith("en") ? 0 : 1;
+    if(ae !== be) return ae - be;
+    return (a.name || "").localeCompare(b.name || "");
+  });
+
+  for(const v of sorted){
+    const opt = document.createElement("option");
+    opt.value = v.voiceURI || v.name;
+    opt.textContent = `${v.name}${v.lang ? " ("+v.lang+")" : ""}${v.default ? " — default" : ""}`;
+    el.ttsVoice.appendChild(opt);
+  }
+}
+
+function ttsGetSelectedVoice(){
+  if(!el.ttsVoice) return null;
+  const want = el.ttsVoice.value || "";
+  const voices = speechSynthesis.getVoices ? speechSynthesis.getVoices() : [];
+  if(!want) return null;
+  return voices.find(v => (v.voiceURI || v.name) === want) || null;
+}
+
+
+
+function ttsDiagnostics(){
+  const supported = ttsSupported();
+  if(!supported) return "unsupported";
+  const voices = (speechSynthesis.getVoices ? speechSynthesis.getVoices() : []) || [];
+  const v = ttsGetSelectedVoice();
+  return `voices:${voices.length}${v ? " | " + v.name : ""}`;
+}
+
+function ttsSpeakOnce(msg, {onStart, onEnd} = {}){
+  if(!ttsSupported()) return null;
+
+  // Some browsers require these inside the user gesture.
+  try{ speechSynthesis.getVoices && speechSynthesis.getVoices(); }catch(e){}
+  try{ speechSynthesis.resume(); }catch(e){}
+
+  const u = new SpeechSynthesisUtterance(msg);
+
+  const v = ttsGetSelectedVoice();
+  if(v) u.voice = v;
+
+  const rate = parseFloat(el.ttsRate?.value || "1");
+  if(isFinite(rate)) u.rate = rate;
+
+  if(onStart) u.onstart = onStart;
+  u.onend = () => { if(onEnd) onEnd(); };
+  u.onerror = () => { if(onEnd) onEnd(true); };
+
+  // Watchdog: if speech doesn't start quickly, try a gentle kick once.
+  let kicked = false;
+  const kick = () => {
+    if(kicked) return;
+    kicked = true;
+    try{ speechSynthesis.cancel(); }catch(e){}
+    try{ speechSynthesis.resume(); }catch(e){}
+    try{ speechSynthesis.speak(u); }catch(e){}
+    setTimeout(() => {
+      if(!speechSynthesis.speaking && !speechSynthesis.pending){
+        ttsSetStatus("Speech didn't start. If you're opening the file directly, try running it via a local server (or use Chrome/Edge).");
+        ttsSetButtons();
+      }
+    }, 600);
+  };
+
+  setTimeout(() => {
+    if(!speechSynthesis.speaking && !speechSynthesis.pending) kick();
+  }, 450);
+
+  // Small delay after cancel() helps some engines.
+  setTimeout(() => {
+    try{ speechSynthesis.speak(u); }catch(e){
+      ttsSetStatus("Unable to start speech: " + (e?.message || e));
+    }
+    ttsSetButtons();
+  }, 40);
+
+  return u;
+}
+
+function ttsMakeSnapshot(){
+  const channelRaw = el.ttsChannel?.value || "";
+  const speakerRaw = el.ttsSpeaker?.value || "";
+  const phraseRaw  = el.ttsPhrase?.value || "";
+  const scope = el.ttsScope?.value || "tab";
+  const sayChannel = !!el.ttsSayChannel?.checked;
+
+  // Channel filter supports comma-separated values (e.g. "Global, Guild, Combat").
+  // Special values "All", "Any" or "*" mean: no channel restriction.
+  const wantChannels = parseChannelList(channelRaw);
+  const wantChannelSet = wantChannels.length ? new Set(wantChannels) : null;
+
+  const wantSpeaker = ttsNormalizeKey(ttsNormalizeName(speakerRaw));
+  const wantPhrase  = ttsNormalizePhrase(phraseRaw);
+
+  // For tab scope, capture the current tab + top search value at Play time so "live" stays consistent.
+  const activeChannel = state.activeChannel;
+  const search = state.search || "";
+
+  return { scope, sayChannel, wantChannels, wantChannelSet, wantSpeaker, wantPhrase, activeChannel, search };
+}
+
+function ttsSnapshotItems(snap){
+  if(!snap) return [];
+  if(snap.scope === "all") return state.all || [];
+  // Tab scope with snapshot of channel + search
+  let items = (snap.activeChannel === "All") ? (state.all || []) : (state.channels.get(snap.activeChannel) ?? []);
+  const q = (snap.search || "").trim().toLowerCase();
+  const qNoColon = q.replace(/:+\s*$/,"");
+  if(q){
+    items = items.filter(it => {
+      const ts = (it.ts || "").toLowerCase();
+      const ch = (it.channel || "").toLowerCase();
+      const from = (it.from || "").toLowerCase();
+      const msg = (it.text || "").toLowerCase();
+      return ts.includes(q) ||
+             ch.includes(q) ||
+             from.includes(qNoColon || q) ||
+             msg.includes(q);
+    });
+  }
+  return items;
+}
+
+
+function ttsQueueEntryForItem(it, snap){
+  let speakText = (it.text || "").trim();
+  if(!speakText) return null;
+
+  // Ensure we never read the speaker name; strip "Name:" if present in text.
+  const sp = ttsSpeakerOf(it);
+  if(sp){
+    const re = new RegExp("^" + ttsEscapeRegExp(sp) + "\s*:\s*", "i");
+    speakText = speakText.replace(re, "").trim();
+  }
+  if(!speakText) return null;
+
+  let phraseHit = false;
+  if(snap?.wantPhrase){
+    const msgLc = speakText.toLowerCase();
+    if(!msgLc.includes(snap.wantPhrase)) return null;
+    phraseHit = true;
+  }
+
+  const parts = [];
+  if(snap?.sayChannel && it.channel) parts.push(`[${it.channel}]`);
+  parts.push(speakText);
+
+  return {
+    text: parts.join(" "),
+    speakerKey: ttsNormalizeKey(ttsSpeakerOf(it)),
+    itemId: (it && it.id != null) ? it.id : null,
+    phraseHit
+  };
+}
+
+
+function ttsItemMatchesFilters(it, snap){
+  if(!it || !snap) return false;
+
+  // Respect Scope=Current tab: only match messages from the currently selected channel tab (unless you're on All).
+  if(snap.scope === "tab" && snap.activeChannel && snap.activeChannel !== "All"){
+    if((it.channel || "") !== snap.activeChannel) return false;
+  }
+
+  // Respect the main top search filter captured at Play time (for tab scope).
+  const q = (snap.scope === "tab" ? (snap.search || "").trim().toLowerCase() : "");
+  if(q){
+    const qNoColon = q.replace(/:+\s*$/,"");
+    const ts = (it.ts || "").toLowerCase();
+    const ch = (it.channel || "").toLowerCase();
+    const from = (ttsSpeakerOf(it) || "").toLowerCase();
+    const msg = (it.text || "").toLowerCase();
+    if(!(ts.includes(q) || ch.includes(q) || from.includes(qNoColon || q) || msg.includes(q))) return false;
+  }
+
+  if(snap.wantChannelSet){
+    if(!snap.wantChannelSet.has(((it.channel || "").toLowerCase()))) return false;
+  }
+
+  if(snap.wantSpeaker){
+    if(!ttsNormalizeKey(ttsSpeakerOf(it)).includes(snap.wantSpeaker)) return false;
+  }
+
+  // Phrase match is checked later (after "Name:" stripping)
+  return true;
+}
+
+
+function ttsBuildQueueFromSnapshot(snap){
+  let items = ttsSnapshotItems(snap);
+
+  if(snap.wantChannelSet){
+    items = items.filter(it => snap.wantChannelSet.has((it.channel || "").toLowerCase()));
+  }
+  if(snap.wantSpeaker){
+    items = items.filter(it => ttsNormalizeKey(ttsSpeakerOf(it)).includes(snap.wantSpeaker));
+  }
+
+  const out = [];
+  for(const it of items){
+    const entry = ttsQueueEntryForItem(it, snap);
+    if(entry) out.push(entry);
+  }
+  return out;
+}
+
+
+function ttsStop(){
+  if(ttsSupported()){
+    try{ speechSynthesis.cancel(); }catch(e){}
+  }
+  tts.active = false;
+  tts.userPlaying = false;
+  tts.live = false;
+  tts.snapshot = null;
+  tts.lastProcessedId = 0;
+  tts.queue = [];
+  tts.idx = 0;
+  tts.currentUtterance = null;
+  ttsSetStatus("");
+  ttsSetButtons();
+}
+
+
+
+function ttsSpeakNext(){
+  if(!ttsSupported()) return;
+  if(!tts.active) return;
+
+  if(tts.live){
+    if(!tts.queue.length){
+      ttsSetStatus("Listening for new matching messages… (" + ttsDiagnostics() + ")");
+      ttsSetButtons();
+      return;
+    }
+    const entry = tts.queue.shift();
+    const msgText = (entry && entry.text) ? entry.text : "";
+    tts.currentUtterance = ttsSpeakOnce(msgText, {
+      onStart: () => {
+        if(entry?.phraseHit) ttsApplyHighlight({ speakerKey: entry.speakerKey, itemId: entry.itemId });
+        ttsSetStatus(`Speaking (live)… (${ttsDiagnostics()})`);
+        ttsSetButtons();
+      },
+      onEnd: () => {
+        ttsSpeakNext();
+      }
+    });
+    if(!tts.currentUtterance){
+      tts.active = false;
+      tts.live = false;
+      ttsSetStatus("Text-to-speech is not available in this browser.");
+      ttsSetButtons();
+    }
+    return;
+  }
+
+  if(tts.idx >= tts.queue.length){
+    tts.active = false;
+    tts.userPlaying = false;
+    ttsSetStatus("Finished.");
+    ttsSetButtons();
+    return;
+  }
+
+  const entry = tts.queue[tts.idx];
+  const msgText = (entry && entry.text) ? entry.text : "";
+  tts.currentUtterance = ttsSpeakOnce(msgText, {
+    onStart: () => {
+      if(entry?.phraseHit) ttsApplyHighlight({ speakerKey: entry.speakerKey, itemId: entry.itemId });
+      ttsSetStatus(`Speaking ${tts.idx + 1}/${tts.queue.length} (${ttsDiagnostics()})`);
+      ttsSetButtons();
+    },
+    onEnd: () => {
+      tts.idx++;
+      ttsSpeakNext();
+    }
+  });
+
+  if(!tts.currentUtterance){
+    tts.active = false;
+    ttsSetStatus("Text-to-speech is not available in this browser.");
+    ttsSetButtons();
+  }else{
+    ttsSetStatus(`Starting ${tts.idx + 1}/${tts.queue.length}… (${ttsDiagnostics()})`);
+    ttsSetButtons();
+  }
+}
+
+function ttsPlay(){
+  if(!ttsSupported()){
+    ttsSetStatus("Text-to-speech is not supported in this browser.");
+    return;
+  }
+
+  try{ ttsPopulateVoices(); }catch(e){}
+  try{ speechSynthesis.getVoices && speechSynthesis.getVoices(); }catch(e){}
+  try{ speechSynthesis.resume(); }catch(e){}
+
+  ttsStop();
+  tts.userPlaying = true;
+
+  const snap = ttsMakeSnapshot();
+  const wantLive = !!el.ttsLive?.checked;
+
+  if(wantLive){
+    tts.active = true;
+    tts.live = true;
+    tts.snapshot = snap;
+    tts.queue = [];
+    tts.idx = 0;
+    tts.lastProcessedId = state.nextId || 0;
+
+    ttsSetStatus("Listening for new matching messages… (" + ttsDiagnostics() + ")");
+    ttsSetButtons();
+    return;
+  }
+
+  const q = ttsBuildQueueFromSnapshot(snap);
+  if(!q.length){
+    tts.userPlaying = false;
+    ttsSetStatus("No matching lines to read (check scope/channel/speaker/phrase).");
+    ttsSetButtons();
+    return;
+  }
+  tts.queue = q;
+  tts.idx = 0;
+  tts.active = true;
+  tts.live = false;
+  tts.snapshot = snap;
+
+  ttsSetStatus(`Queued ${q.length} line(s)… (${ttsDiagnostics()})`);
+  ttsSetButtons();
+  ttsSpeakNext();
+}
+
+
+function ttsHandleNewItems(newItems){
+  if(!tts.active || !tts.live || !tts.snapshot) return;
+  if(!newItems || !newItems.length) return;
+
+  for(const it of newItems){
+    const id = it?.id ?? 0;
+    if(id <= (tts.lastProcessedId || 0)) continue;
+    tts.lastProcessedId = id;
+
+    if(!ttsItemMatchesFilters(it, tts.snapshot)) continue;
+    const entry = ttsQueueEntryForItem(it, tts.snapshot);
+    if(!entry) continue;
+
+    tts.queue.push(entry);
+  }
+
+  if(tts.queue.length && !(speechSynthesis.speaking || speechSynthesis.pending)){
+    ttsSpeakNext();
+  }else{
+    ttsSetButtons();
+  }
+}
+
+
+function ttsTogglePause(){
+  if(!ttsSupported()) return;
+  if(!speechSynthesis.speaking && !speechSynthesis.pending){
+    ttsSetButtons();
+    return;
+  }
+  if(speechSynthesis.paused) speechSynthesis.resume();
+  else speechSynthesis.pause();
+  ttsSetButtons();
+
+
+
+}
+
+function ttsTest(){
+  if(!ttsSupported()){
+    ttsSetStatus("Text-to-speech is not supported in this browser.");
+    return;
+  }
+  // Stop any current speech and speak a short phrase
+  try{ speechSynthesis.cancel(); }catch(e){}
+  tts.active = false;
+  tts.userPlaying = false;
+  tts.queue = [];
+  tts.idx = 0;
+
+  ttsSetStatus("Testing speech… (" + ttsDiagnostics() + ")");
+  ttsSetButtons();
+
+  ttsSpeakOnce("Test speech. If you can hear this, text to speech is working.", {
+    onStart: () => { ttsSetStatus("Test speaking… (" + ttsDiagnostics() + ")"); ttsSetButtons(); },
+    onEnd: () => { ttsSetStatus("Test complete. (" + ttsDiagnostics() + ")"); ttsSetButtons(); }
+  });
+}
+
+function initTTS(){
+  if(!el.ttsPlay) return; // UI not present
+  if(!ttsSupported()){
+    ttsSetStatus("Text-to-speech is not supported in this browser.");
+    ttsSetButtons();
+    return;
+  }
+
+  // Populate voices (some browsers load voices async)
+  ttsPopulateVoices();
+  speechSynthesis.onvoiceschanged = () => ttsPopulateVoices();
+
+  el.ttsPlay.addEventListener("click", ttsPlay);
+  el.ttsTest?.addEventListener("click", ttsTest);
+  el.ttsPause.addEventListener("click", ttsTogglePause);
+  el.ttsStop.addEventListener("click", ttsStop);
+
+  // If the user changes voice/rate while speaking, apply on next line
+  el.ttsVoice?.addEventListener("change", () => {});
+  el.ttsRate?.addEventListener("change", () => {});
+
+  ttsSetButtons();
+}
+
+
+// -----------------------------
+// Alert rules (multiple)
+// -----------------------------
+const ALERTS_KEY = "pg_alert_rules_v1";
+const ALERTS_ENABLED_KEY = "pg_alerts_enabled_v1";
+
+const MENTIONS_KEY = "pg_mentions_v1";
+
+const mentions = {
+  enabled: false,
+  namesRaw: "",
+  names: [],        // normalized strings
+  regexes: [],      // compiled regexes
+  scope: "all",     // "tab" | "all"
+  actSpeak: true,
+  actHiSpeaker: true,
+  actHiLine: true,
+  durationSec: 20,
+  cooldownSec: 1,
+};
+
+function mentionsSetStatus(msg){
+  if(el.mentionsStatus) el.mentionsStatus.textContent = msg || "";
+}
+
+function mentionsNormalizeName(s){
+  return (s || "").trim().replace(/:+$/g, "");
+}
+
+function mentionsParseNames(raw){
+  const parts = (raw || "").split(",").map(x => mentionsNormalizeName(x)).filter(Boolean);
+  // de-dup while preserving order
+  const seen = new Set();
+  const out = [];
+  for(const p of parts){
+    const k = p.toLowerCase();
+    if(seen.has(k)) continue;
+    seen.add(k);
+    out.push(p);
+  }
+  return out;
+}
+
+function mentionsBuildRegexes(names){
+  const regs = [];
+  for(const nm of (names || [])){
+    const esc = nm.replace(/[.*+?^${}()|[\[\]\\]/g, "\\$&");
+    // If the name is simple word chars, use word boundaries to reduce false positives
+    if(/^[a-z0-9_]+$/i.test(nm)){
+      regs.push(new RegExp("\\b" + esc + "\\b", "i"));
+    }else{
+      regs.push(new RegExp(esc, "i"));
+    }
+  }
+  return regs;
+}
+
+function mentionsLoad(){
+  try{
+    const raw = localStorage.getItem(MENTIONS_KEY);
+    if(raw){
+      const m = JSON.parse(raw) || {};
+      mentions.enabled = !!m.enabled;
+      mentions.namesRaw = (m.namesRaw || "");
+      mentions.scope = (m.scope === "tab" ? "tab" : "all");
+      mentions.actSpeak = (m.actSpeak !== false); // default true
+      mentions.actHiSpeaker = (m.actHiSpeaker !== false);
+      mentions.actHiLine = (m.actHiLine !== false);
+      mentions.durationSec = Number(m.durationSec || 20) || 20;
+      mentions.cooldownSec = Number(m.cooldownSec || 1) || 1;
+    }
+  }catch(_){}
+  mentions.names = mentionsParseNames(mentions.namesRaw);
+  mentions.regexes = mentionsBuildRegexes(mentions.names);
+}
+
+function mentionsSave(){
+  try{
+    localStorage.setItem(MENTIONS_KEY, JSON.stringify({
+      enabled: mentions.enabled,
+      namesRaw: mentions.namesRaw,
+      scope: mentions.scope,
+      actSpeak: mentions.actSpeak,
+      actHiSpeaker: mentions.actHiSpeaker,
+      actHiLine: mentions.actHiLine,
+      durationSec: mentions.durationSec,
+      cooldownSec: mentions.cooldownSec,
+    }));
+  }catch(_){}
+}
+
+function mentionsRenderToUI(){
+  if(el.mentionsEnabled) el.mentionsEnabled.checked = !!mentions.enabled;
+  if(el.mentionsNames) el.mentionsNames.value = mentions.namesRaw || "";
+  if(el.mentionsScope) el.mentionsScope.value = mentions.scope || "all";
+  if(el.mentionsSpeak) el.mentionsSpeak.checked = !!mentions.actSpeak;
+  if(el.mentionsHiSpeaker) el.mentionsHiSpeaker.checked = !!mentions.actHiSpeaker;
+  if(el.mentionsHiLine) el.mentionsHiLine.checked = !!mentions.actHiLine;
+  if(el.mentionsDuration) el.mentionsDuration.value = String(mentions.durationSec || 20);
+  if(el.mentionsCooldown) el.mentionsCooldown.value = String(mentions.cooldownSec || 1);
+}
+
+function mentionsReadFromUI(){
+  mentions.enabled = !!el.mentionsEnabled?.checked;
+  mentions.namesRaw = (el.mentionsNames?.value || "");
+  mentions.scope = (el.mentionsScope?.value === "tab" ? "tab" : "all");
+  mentions.actSpeak = !!el.mentionsSpeak?.checked;
+  mentions.actHiSpeaker = !!el.mentionsHiSpeaker?.checked;
+  mentions.actHiLine = !!el.mentionsHiLine?.checked;
+  mentions.durationSec = Number(el.mentionsDuration?.value || 20) || 20;
+  mentions.cooldownSec = Number(el.mentionsCooldown?.value || 1) || 1;
+
+  mentions.names = mentionsParseNames(mentions.namesRaw);
+  mentions.regexes = mentionsBuildRegexes(mentions.names);
+}
+
+function mentionsItemInScope(it){
+  if(mentions.scope === "tab" && state.activeChannel && state.activeChannel !== "All"){
+    return ((it.channel || "") === state.activeChannel);
+  }
+  return true;
+}
+
+function mentionsMatches(it){
+  if(!mentions.enabled) return false;
+  if(!it) return false;
+  if(!mentions.names.length) return false;
+  if(!mentionsItemInScope(it)) return false;
+  const msg = (it.text || "").toString();
+  if(!msg) return false;
+  for(const rx of mentions.regexes){
+    try{ if(rx.test(msg)) return true; }catch(_){}
+  }
+  return false;
+}
+
+function mentionsFire(it){
+  const now = Date.now();
+  const key = "__mentions__";
+  const last = alerts.cooldownMap.get(key) || 0;
+  const cooldownMs = Math.max(0, (mentions.cooldownSec || 0) * 1000);
+  if(cooldownMs && (now - last) < cooldownMs) return;
+  alerts.cooldownMap.set(key, now);
+
+  const base = (it.text || "").toString();
+  const spoken = (it.channel ? `[${it.channel}] ` : "") + base;
+  const durationMs = Math.max(250, (mentions.durationSec || 20) * 1000);
+
+  if(mentions.actSpeak){
+    if(ttsSupported()){
+      ttsSpeakOnce(spoken, {
+        onStart: () => { mentionsSetStatus("Mention detected — speaking…"); },
+        onEnd: () => { /* keep status */ }
+      });
+    }else{
+      mentionsSetStatus("TTS not supported in this browser.");
+    }
+  }
+
+  if(mentions.actHiSpeaker || mentions.actHiLine){
+    ttsApplyHighlight({
+      speakerKey: ttsNormalizeKey(ttsSpeakerOf(it)),
+      itemId: it?.id ?? null,
+      durationMs,
+      highlightSpeaker: !!mentions.actHiSpeaker,
+      highlightLine: !!mentions.actHiLine
+    });
+  }
+
+  const who = ttsSpeakerOf(it) || "Someone";
+  mentionsSetStatus(`Mention by ${who} (${it.channel || "Unparsed"}).`);
+}
+
+const alerts = {
+  enabled: false,
+  lastProcessedId: 0,     // ignore older lines until armed
+  rules: [],
+  editingId: null,
+  cooldownMap: new Map(), // ruleId -> last fired timestamp
+};
+
+let _ruleSoundDataUrl = "";
+let _ruleSoundName = "";
+
+function ruleSoundSet(dataUrl, name){
+  _ruleSoundDataUrl = dataUrl || "";
+  _ruleSoundName = name || "";
+  if(el.ruleSoundLabel){
+    el.ruleSoundLabel.textContent = _ruleSoundName
+      ? `Sound: ${_ruleSoundName}`
+      : (_ruleSoundDataUrl ? "Sound selected" : "No sound selected");
+  }
+}
+
+function ruleSoundShowIfNeeded(){
+  const on = !!el.ruleActSound?.checked;
+  if(el.ruleSoundRow) el.ruleSoundRow.style.display = on ? "flex" : "none";
+}
+
+function playSoundDataUrl(dataUrl){
+  if(!dataUrl) return;
+  // Try to unlock audio context (helps in some browsers)
+  try{
+    if(!window.__pgAudioCtx){
+      window.__pgAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    window.__pgAudioCtx.resume?.();
+  }catch(_){}
+
+  try{
+    const a = new Audio(dataUrl);
+    a.preload = "auto";
+    const p = a.play();
+    if(p && typeof p.catch === "function"){
+      p.catch(() => {
+        alertsSetStatus("Sound blocked by browser until you interact with the page (click once, then try again).");
+      });
+    }
+  }catch(e){
+    alertsSetStatus("Could not play sound: " + (e?.message || e));
+  }
+}
+
+function alertsSetStatus(msg){
+  if(el.alertsStatus) el.alertsStatus.textContent = msg || "";
+}
+function alertsLoad(){
+  try{
+    const enabled = localStorage.getItem(ALERTS_ENABLED_KEY);
+    alerts.enabled = (enabled === "1");
+  }catch(_){}
+  try{
+    const raw = localStorage.getItem(ALERTS_KEY);
+    alerts.rules = raw ? (JSON.parse(raw) || []) : [];
+    // Migration/defaults
+    for(const r of (alerts.rules||[])){
+      if(!r.speakMode) r.speakMode = "full";
+    }
+  }catch(_){
+    alerts.rules = [];
+  }
+}
+function alertsSave(){
+  try{ localStorage.setItem(ALERTS_ENABLED_KEY, alerts.enabled ? "1" : "0"); }catch(_){}
+  try{ localStorage.setItem(ALERTS_KEY, JSON.stringify(alerts.rules || [])); }catch(_){}
+}
+function alertsArmFromNow(){
+  alerts.lastProcessedId = state.nextId || 0;
+  alertsSetStatus("Armed from now (ignoring older lines).");
+}
+
+function ruleSummary(r){
+  const bits = [];
+  if(r.scope === "tab") bits.push("tab");
+  else bits.push("all");
+  if(r.channel) bits.push("channel:"+r.channel);
+  if(r.speaker) bits.push("speaker:"+r.speaker);
+  if(r.phrase) bits.push("phrase:\""+r.phrase+"\"");
+  if(r.speakMode && r.speakMode !== "full") bits.push("speak:"+r.speakMode);
+  const acts = [];
+  if(r.actSpeak) acts.push("speak");
+  if(r.actHiSpeaker) acts.push("hi speaker");
+  if(r.actHiLine) acts.push("hi line");
+  if(r.actSound && r.soundDataUrl) acts.push("sound");
+  bits.push("→ " + (acts.join(", ") || "no actions"));
+  return bits.join(" · ");
+}
+
+function alertsRenderList(){
+  if(!el.rulesList) return;
+  el.rulesList.innerHTML = "";
+  if(!alerts.rules.length){
+    const div = document.createElement("div");
+    div.className = "muted";
+    div.style.fontSize = "12px";
+    div.textContent = "No rules yet. Click “Add rule” to create one.";
+    el.rulesList.appendChild(div);
+    return;
+  }
+
+  for(const r of alerts.rules){
+    const item = document.createElement("div");
+    item.className = "ruleItem";
+
+    const left = document.createElement("div");
+    left.className = "ruleMain";
+
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = !!r.enabled;
+    cb.addEventListener("change", () => {
+      r.enabled = cb.checked;
+      alertsSave();
+      alertsSetStatus(r.enabled ? `Enabled “${r.name || "rule"}”.` : `Disabled “${r.name || "rule"}”.`);
+    });
+
+    const txt = document.createElement("div");
+    txt.className = "ruleText";
+    const nm = document.createElement("div");
+    nm.className = "ruleName";
+    nm.textContent = r.name || "Untitled rule";
+    const desc = document.createElement("div");
+    desc.className = "ruleDesc";
+    desc.textContent = ruleSummary(r);
+    txt.appendChild(nm);
+    txt.appendChild(desc);
+
+    left.appendChild(cb);
+    left.appendChild(txt);
+
+    const btns = document.createElement("div");
+    btns.className = "ruleBtns";
+
+    const edit = document.createElement("button");
+    edit.className = "btn miniBtn";
+    edit.textContent = "✏️ Edit";
+    edit.addEventListener("click", () => alertsOpenEditor(r));
+
+    const del = document.createElement("button");
+    del.className = "btn miniBtn";
+    del.textContent = "🗑 Delete";
+    del.addEventListener("click", () => {
+      const idx = alerts.rules.findIndex(x => x.id === r.id);
+      if(idx >= 0) alerts.rules.splice(idx, 1);
+      alertsSave();
+      alertsRenderList();
+      alertsSetStatus("Rule deleted.");
+    });
+
+    btns.appendChild(edit);
+    btns.appendChild(del);
+
+    item.appendChild(left);
+    item.appendChild(btns);
+    el.rulesList.appendChild(item);
+  }
+}
+
+function alertsOpenEditor(rule=null){
+  if(!el.ruleEditor) return;
+  el.ruleEditor.style.display = "block";
+  alerts.editingId = rule ? rule.id : null;
+
+  el.ruleName.value = rule?.name || "";
+  el.ruleEnabled.checked = (rule ? !!rule.enabled : true);
+  el.ruleScope.value = rule?.scope || "all";
+  el.ruleChannel.value = rule?.channel || "";
+  el.ruleSpeaker.value = rule?.speaker || "";
+  el.rulePhrase.value = rule?.phrase || "";
+  if(el.ruleSpeakMode) el.ruleSpeakMode.value = rule?.speakMode || "full";
+  if(el.ruleSpeechTemplate) el.ruleSpeechTemplate.value = rule?.speechTemplate || "";
+
+  el.ruleActSpeak.checked = (rule ? !!rule.actSpeak : true);
+    if(el.ruleSayChannel) el.ruleSayChannel.checked = (rule ? !!rule.sayChannel : false);
+el.ruleActHiSpeaker.checked = (rule ? !!rule.actHiSpeaker : true);
+  el.ruleActHiLine.checked = (rule ? !!rule.actHiLine : true);
+  el.ruleActSound.checked = (rule ? !!rule.actSound : false);
+
+  ruleSoundSet(rule?.soundDataUrl || "", rule?.soundName || "");
+  ruleSoundShowIfNeeded();
+
+  el.ruleDuration.value = String(rule?.durationSec ?? 20);
+  el.ruleCooldown.value = String(rule?.cooldownSec ?? 1);
+
+  alertsSetStatus(rule ? `Editing “${rule.name || "rule"}”…` : "Creating new rule…");
+}
+
+function alertsCloseEditor(){
+  if(!el.ruleEditor) return;
+  el.ruleEditor.style.display = "none";
+  alerts.editingId = null;
+  ruleSoundSet("", "");
+  if(el.ruleActSound) el.ruleActSound.checked = false;
+  ruleSoundShowIfNeeded();
+}
+
+function alertsReadEditor(){
+  const name = (el.ruleName.value || "").trim() || "Untitled rule";
+  const enabled = !!el.ruleEnabled.checked;
+  const scope = el.ruleScope.value || "all";
+  const channel = parseChannelList(el.ruleChannel.value || "").join(", ");
+  const speaker = ttsNormalizeKey(ttsNormalizeName(el.ruleSpeaker.value || ""));
+  const phrase = ttsNormalizePhrase(el.rulePhrase.value || "");
+  const speakMode = (el.ruleSpeakMode?.value || "full");
+  const speechTemplate = (el.ruleSpeechTemplate?.value || "").trim();
+
+  const actSpeak = !!el.ruleActSpeak.checked;
+    const sayChannel = !!(el.ruleSayChannel && el.ruleSayChannel.checked);
+const actHiSpeaker = !!el.ruleActHiSpeaker.checked;
+  const actHiLine = !!el.ruleActHiLine.checked;
+  const actSound = !!el.ruleActSound.checked;
+
+  const durationSec = Math.max(1, parseFloat(el.ruleDuration.value || "20") || 20);
+  const cooldownSec = Math.max(0, parseFloat(el.ruleCooldown.value || "0") || 0);
+
+  return {
+    name, enabled, scope,
+    channel, speaker, phrase, speakMode, speechTemplate,
+    actSpeak, sayChannel, actHiSpeaker, actHiLine, actSound,
+    soundDataUrl: (actSound ? (_ruleSoundDataUrl || "") : ""),
+    soundName: (actSound ? (_ruleSoundName || "") : ""),
+    durationSec, cooldownSec
+  };
+}
+
+function alertsUpsertRule(ruleData){
+  if(alerts.editingId){
+    const r = alerts.rules.find(x => x.id === alerts.editingId);
+    if(r) Object.assign(r, ruleData);
+  }else{
+    alerts.rules.push({ id: "r_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2,7), ...ruleData });
+  }
+  alertsSave();
+  alertsRenderList();
+}
+
+function alertRuleMatches(r, it){
+  if(!r || !it) return false;
+
+  // Scope
+  if(r.scope === "tab" && state.activeChannel && state.activeChannel !== "All"){
+    if((it.channel || "") !== state.activeChannel) return false;
+  }
+  const ruleChannels = parseChannelList(r.channel);
+  if(ruleChannels.length){
+    const itCh = (ttsNormalizeChannelName(it.channel || "Unparsed") || "Unparsed").toLowerCase();
+    if(!ruleChannels.includes(itCh)) return false;
+  }
+
+  if(r.speaker){
+    const fromKey = ttsNormalizeKey(ttsSpeakerOf(it));
+    if(!fromKey.includes(r.speaker)) return false;
+  }
+
+  if(r.phrase){
+    // phrase should match the message text after stripping Name:
+    const snap = { sayChannel:false, wantPhrase:r.phrase };
+    const entry = ttsQueueEntryForItem(it, snap);
+    if(!entry) return false;
+    // ttsQueueEntryForItem already ensures phrase match if wantPhrase set
+    if(!entry.phraseHit) return false;
+  }
+
+  return true;
+}
+
+
+function shapeSpeechText(text, mode, phrase){
+  const t = (text ?? "").toString();
+  const m = (mode || "full");
+  const ph = (phrase || "").toString().trim();
+  if(!ph || m === "full") return t;
+
+  const tl = t.toLowerCase();
+  const pl = ph.toLowerCase();
+  const idx = tl.indexOf(pl);
+  if(idx < 0) return t;
+
+  if(m === "beforePhrase") return t.slice(0, idx).trim();
+  if(m === "afterPhrase") return t.slice(idx + ph.length).trim();
+  if(m === "removePhrase"){
+    const esc = ph.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const re = new RegExp(esc, "ig");
+    return t.replace(re, "").replace(/\s+/g, " ").trim();
+  }
+  return t;
+}
+
+
+
+function applySpeechTemplate(tpl, vars){
+  if(!tpl) return "";
+  return (tpl + "").replace(/\{(\w+)\}/g, (m, k) => {
+    if(Object.prototype.hasOwnProperty.call(vars, k)) return String(vars[k] ?? "");
+    return m; // keep unknown placeholders visible
+  }).replace(/\s+/g, " ").trim();
+}
+function speechBeforeAfter(text, phrase){
+  const t = (text || "");
+  const ph = (phrase || "").trim();
+  if(!ph) return { beforePhrase: t.trim(), afterPhrase: "" };
+  const esc = ph.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(esc, "i");
+  const m = re.exec(t);
+  if(!m) return { beforePhrase: t.trim(), afterPhrase: "" };
+  const idx = m.index;
+  const beforePhrase = t.slice(0, idx).trim();
+  const afterPhrase = t.slice(idx + m[0].length).trim();
+  return { beforePhrase, afterPhrase };
+}
+
+
+function alertsFireRule(r, it){
+  const now = Date.now();
+  const last = alerts.cooldownMap.get(r.id) || 0;
+  const cooldownMs = Math.max(0, (r.cooldownSec || 0) * 1000);
+  if(cooldownMs && (now - last) < cooldownMs) return;
+  alerts.cooldownMap.set(r.id, now);
+
+  // Build message text (never speak the speaker name)
+  const entry = ttsQueueEntryForItem(it, { sayChannel:false, wantPhrase:"" });
+  const base = entry?.text || (it.text || "");
+  const shapedBase = shapeSpeechText(base, r.speakMode || "full", r.phrase || "");
+  const sayBase = (shapedBase || base).trim();
+
+  const spk = (ttsSpeakerOf(it) || "").trim();
+  const ch = (it.channel || "Unparsed").trim();
+  const ba = speechBeforeAfter(base, r.phrase || "");
+  const vars = {
+    channel: ch,
+    speaker: spk,
+    text: sayBase,
+    beforePhrase: ba.beforePhrase,
+    afterPhrase: ba.afterPhrase
+  };
+
+  let spoken = "";
+  if((r.speechTemplate || "").trim()){
+    spoken = applySpeechTemplate(r.speechTemplate, vars);
+  }
+  if(!spoken){
+    spoken = ((r.sayChannel && it.channel) ? `[${it.channel}] ` : "") + sayBase;
+  }
+
+  const durationMs = Math.max(250, (r.durationSec || 20) * 1000);
+
+  if(r.actSound && r.soundDataUrl){
+    playSoundDataUrl(r.soundDataUrl);
+  }
+
+  if(r.actSpeak){
+    if(ttsSupported()){
+      // Queue the utterance
+      ttsSpeakOnce(spoken, {
+        onStart: () => { alertsSetStatus(`Rule “${r.name}” speaking…`); },
+        onEnd: () => { /* keep last status */ }
+      });
+    }else{
+      alertsSetStatus("TTS not supported in this browser.");
+    }
+  }
+
+  if(r.actHiSpeaker || r.actHiLine){
+    ttsApplyHighlight({
+      speakerKey: ttsNormalizeKey(ttsSpeakerOf(it)),
+      itemId: it?.id ?? null,
+      durationMs,
+      highlightSpeaker: !!r.actHiSpeaker,
+      highlightLine: !!r.actHiLine
+    });
+  }
+
+  alertsSetStatus(`Rule fired: “${r.name}”`);
+}
+
+function alertsHandleNewItems(newItems){
+  if(!alerts.enabled && !mentions.enabled) return;
+  if(!newItems || !newItems.length) return;
+
+  for(const it of newItems){
+    const id = it?.id ?? 0;
+    if(id <= (alerts.lastProcessedId || 0)) continue;
+    alerts.lastProcessedId = id;
+
+    for(const r of alerts.rules){
+      if(!r.enabled) continue;
+      if(alertRuleMatches(r, it)) alertsFireRule(r, it);
+    }
+
+    // Mentions (quick toggle)
+    if(mentionsMatches(it)) mentionsFire(it);
+  }
+}
+
+function initAlerts(){
+  if(!el.alertsBox) return;
+
+  alertsLoad();
+  mentionsLoad();
+  mentionsRenderToUI();
+  if(el.alertsEnabled) el.alertsEnabled.checked = alerts.enabled;
+  if(el.mentionsEnabled) el.mentionsEnabled.checked = mentions.enabled;
+
+  alertsRenderList();
+
+  el.alertsEnabled?.addEventListener("change", () => {
+    alerts.enabled = !!el.alertsEnabled.checked;
+    alertsSave();
+    if(alerts.enabled) alertsArmFromNow();
+    alertsSetStatus(alerts.enabled ? "Alerts enabled." : "Alerts disabled.");
+  });
+
+  // Mentions quick toggle
+  el.mentionsEnabled?.addEventListener("change", () => {
+    mentionsReadFromUI();
+    mentionsSave();
+    if(mentions.enabled) alertsArmFromNow();
+    mentionsSetStatus(mentions.enabled ? "Mentions enabled." : "Mentions disabled.");
+  });
+
+  el.mentionsSave?.addEventListener("click", () => {
+    mentionsReadFromUI();
+    mentionsSave();
+    if(mentions.enabled) alertsArmFromNow();
+    const n = mentions.names.length;
+    mentionsSetStatus(n ? `Saved (${n} name${n===1?"":"s"}).` : "Saved (no names set).");
+  });
+
+  el.alertsArm?.addEventListener("click", () => {
+    alertsArmFromNow();
+  });
+
+  el.addRule?.addEventListener("click", () => alertsOpenEditor(null));
+  el.ruleCancel?.addEventListener("click", () => { alertsCloseEditor(); alertsSetStatus(""); });
+
+  // Rule sound controls
+  el.ruleActSound?.addEventListener("change", () => {
+    ruleSoundShowIfNeeded();
+  });
+
+  el.ruleSoundChoose?.addEventListener("click", () => {
+    // Must be a user gesture; open file picker
+    el.ruleSoundFile?.click();
+  });
+
+  el.ruleSoundFile?.addEventListener("change", () => {
+    const f = el.ruleSoundFile.files && el.ruleSoundFile.files[0];
+    if(!f) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      ruleSoundSet(reader.result, f.name || "sound");
+      alertsSetStatus("Sound loaded for this rule.");
+    };
+    reader.onerror = () => {
+      alertsSetStatus("Could not read the selected sound file.");
+    };
+    reader.readAsDataURL(f);
+    // Reset so choosing the same file again still triggers change
+    el.ruleSoundFile.value = "";
+  });
+
+  el.ruleSoundClear?.addEventListener("click", () => {
+    ruleSoundSet("", "");
+    alertsSetStatus("Rule sound cleared.");
+  });
+  el.ruleSave?.addEventListener("click", () => {
+    const data = alertsReadEditor();
+    alertsUpsertRule(data);
+    alertsCloseEditor();
+    alertsSetStatus(`Saved rule “${data.name}”.`);
+    // Ensure alerts are enabled if the user creates rules
+    if(!alerts.enabled){
+      alerts.enabled = true;
+      if(el.alertsEnabled) el.alertsEnabled.checked = true;
+      alertsSave();
+      alertsArmFromNow();
+    }
+  });
+
+  // Arm pointer on first init (so we don't trigger on historical lines)
+  alertsArmFromNow();
+}
+
+
+// If the user navigates away, stop speaking to avoid "ghost" speech.
+window.addEventListener("beforeunload", () => {
+  try{ if(ttsSupported()) speechSynthesis.cancel(); }catch(e){}
+});
+
+function normalizeChannel(ch){ return (ch||"Unparsed").trim().replace(/^\[|\]$/g, ""); }
+
+function hslToRgb(h, s, l){
+  // h:0-360, s/l:0-100
+  h = (h % 360 + 360) % 360;
+  s /= 100; l /= 100;
+  const c = (1 - Math.abs(2*l - 1)) * s;
+  const x = c * (1 - Math.abs((h/60) % 2 - 1));
+  const m = l - c/2;
+  let r=0,g=0,b=0;
+  if(h < 60){ r=c; g=x; b=0; }
+  else if(h < 120){ r=x; g=c; b=0; }
+  else if(h < 180){ r=0; g=c; b=x; }
+  else if(h < 240){ r=0; g=x; b=c; }
+  else if(h < 300){ r=x; g=0; b=c; }
+  else { r=c; g=0; b=x; }
+  return [Math.round((r+m)*255), Math.round((g+m)*255), Math.round((b+m)*255)];
+}
+
+function channelColors(channelName){
+  const n = (channelName || "unparsed").toLowerCase();
+
+  // User override (stored locally)
+  const ov = state.colorOverrides?.get?.(n);
+  if(ov){
+    const rgb = hexToRgb(ov);
+    if(rgb){
+      const [r,g,b] = rgb;
+      return {
+        text: `rgba(${r},${g},${b},0.92)`,
+        border: `rgba(${r},${g},${b},0.35)`,
+        bg: `rgba(${r},${g},${b},0.10)`,
+        edge: `rgba(${r},${g},${b},0.78)`,
+      };
+    }
+  }
+
+  // Hand-picked to match the vibe of the existing UI, but every channel gets a color.
+  const preset = {
+    "global": [96,165,250],
+    "help": [34,197,94],
+    "nearby": [244,63,94],
+    "status": [245,158,11],
+    "guild": [168,85,247],
+    "trade": [14,165,233],
+    "tell": [251,146,60],
+    "error": [248,113,113],
+    "npc chatter": [250,204,21],
+    "emotes": [45,212,191],
+    "action emotes": [45,212,191],
+  };
+
+  let rgb = preset[n];
+  if(!rgb){
+    // Deterministic color for any other channel name
+    let h = 2166136261; // FNV-ish
+    for(let i=0;i<n.length;i++){
+      h ^= n.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    const hue = (h >>> 0) % 360;
+    rgb = hslToRgb(hue, 68, 58);
+  }
+
+  const [r,g,b] = rgb;
+  return {
+    text: `rgba(${r},${g},${b},0.92)`,
+    border: `rgba(${r},${g},${b},0.35)`,
+    bg: `rgba(${r},${g},${b},0.10)`,
+    edge: `rgba(${r},${g},${b},0.78)`,
+  };
+}
+
+function hexToRgb(hex){
+  const h = (hex || "").trim();
+  const m = h.match(/^#?([0-9a-f]{6})$/i);
+  if(!m) return null;
+  const n = parseInt(m[1], 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+function rgbToHex(r,g,b){
+  const to = (x) => x.toString(16).padStart(2,"0");
+  return "#" + to(r) + to(g) + to(b);
+}
+function loadColorOverrides(){
+  try{
+    const raw = localStorage.getItem("pg_channel_colors");
+    if(!raw) return new Map();
+    const obj = JSON.parse(raw);
+    const m = new Map();
+    for(const [k,v] of Object.entries(obj)){
+      if(typeof v === "string") m.set(k.toLowerCase(), v);
+    }
+    return m;
+  }catch(e){
+    return new Map();
+  }
+}
+let _previewRAF = 0;
+function schedulePreview(){
+  if(_previewRAF) return;
+  _previewRAF = requestAnimationFrame(() => {
+    _previewRAF = 0;
+    // Re-rendering thousands of rows can be heavy; only live-preview for smaller logs.
+    if((state.all?.length || 0) <= 2000){
+      renderTabs();
+      renderViewer();
+    }
+  });
+}
+
+function saveColorOverrides(){
+  const obj = {};
+  for(const [k,v] of state.colorOverrides.entries()){
+    obj[k] = v;
+  }
+  localStorage.setItem("pg_channel_colors", JSON.stringify(obj));
+}
+
+function renderColorPickers(){
+  if(!el.colorList) return;
+
+  // Channels come from the loaded log. If none loaded yet, show a placeholder.
+  const chans = [...state.channels.keys()].sort((a,b)=>a.localeCompare(b));
+  if(!chans.length){
+    el.colorList.innerHTML = `<div class="muted" style="padding:6px 2px">Load a log to see channels here.</div>`;
+    return;
+  }
+
+  const rows = [];
+  for(const ch of chans){
+    const colors = channelColors(ch);
+    const key = (ch || "").toLowerCase();
+    const override = state.colorOverrides.get(key) || "";
+    const [r,g,b] = hexToRgb(override) || [null,null,null];
+    const currentHex = (r!==null) ? override : rgbToHex(
+      parseInt(colors.text.match(/\d+/g)[0]),
+      parseInt(colors.text.match(/\d+/g)[1]),
+      parseInt(colors.text.match(/\d+/g)[2])
+    );
+
+    rows.push(`
+      <div class="colorRow" style="--dot:${colors.edge}">
+        <div class="name">
+          <span class="dot" aria-hidden="true"></span>
+          <span>${escapeHtml(ch)}</span>
+        </div>
+        <div class="row" style="width:auto">
+          <span class="mini">${override ? "custom" : "auto"}</span>
+          <input type="color" data-channel="${escapeHtml(key)}" value="${escapeHtml(currentHex)}" />
+          <button class="btn" data-clear="${escapeHtml(key)}" style="padding:8px 10px">Clear</button>
+        </div>
+      </div>
+    `);
+  }
+
+  el.colorList.innerHTML = rows.join("");
+
+  // Wire up color inputs
+  el.colorList.querySelectorAll('input[type="color"][data-channel]').forEach(inp => {
+    // While dragging in the picker, keep UI responsive.
+    // - For large logs: update only the picker UI (dot/label), apply on release.
+    // - For small logs: we also do a throttled live preview.
+    inp.addEventListener("input", () => {
+      const k = inp.getAttribute("data-channel");
+      const v = inp.value;
+      if(k && v){
+        state.colorOverrides.set(k, v);
+
+        // Update only this row's dot + label (no rebuild)
+        const row = inp.closest(".colorRow");
+        if(row){
+          const c = channelColors(k);
+          row.style.setProperty("--dot", c.edge);
+          const mini = row.querySelector(".mini");
+          if(mini) mini.textContent = "custom";
+        }
+
+        // Throttled live preview (only if log isn't huge)
+        schedulePreview();
+      }
+    });
+
+    // Apply + save when finished (mouse-up / picker confirmed)
+    inp.addEventListener("change", () => {
+      const k = inp.getAttribute("data-channel");
+      const v = inp.value;
+      if(k && v) state.colorOverrides.set(k, v);
+      saveColorOverrides();
+      renderTabs();
+      renderViewer();
+      // Keep the picker list stable; no need to rebuild here.
+    });
+  });
+// Wire up per-channel clear buttons
+  el.colorList.querySelectorAll('button[data-clear]').forEach(btn => {
+    btn.addEventListener("click", () => {
+      const k = btn.getAttribute("data-clear");
+      if(k){
+        state.colorOverrides.delete(k);
+        saveColorOverrides();
+        renderTabs();
+        renderViewer();
+        renderColorPickers();
+  try{ renderCombatSummary(); }catch(e){}
+  try{ popoutBroadcastColors(); }catch(e){}
+      }
+    });
+  });
+}
+
+
+function channelClass(ch){ return ""; }
+function escapeHtml(s){
+  return (s ?? "").replace(/[&<>"']/g, (c) => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  }[c]));
+}
+
+function escapeAttr(s){ return escapeHtml(s).replace(/"/g,'&quot;'); }
+
+// -----------------------------
+// Tutorial (pre-load + on-demand)
+// -----------------------------
+const TUTORIAL_HIDE_KEY = "pgcv_tutorial_hidden_v1";
+
+function tutorialHiddenPersisted(){
+  return localStorage.getItem(TUTORIAL_HIDE_KEY) === "1";
+}
+
+function tutorialMarkup(){
+  return `
+    <div class="tutorialCard" role="dialog" aria-label="Quick tutorial">
+      <div class="tutorialHead">
+        <div>
+          <h2 class="tutorialTitle">Quick start</h2>
+          <div class="note" style="margin-top:4px">This viewer runs locally in your browser — nothing is uploaded.</div>
+        </div>
+        <button class="tutorialClose" id="tutorialClose" title="Close">×</button>
+      </div>
+
+      <div class="tutorialGrid">
+        <div class="tutorialBlock">
+          <h3>Recommended (best live updates)</h3>
+          <ul>
+            <li>Click <b>📁 Choose folder</b>, select your chat log folder, then click a file in the list.</li>
+            <li>If you see <b>🔓 Grant access</b>, click it (browser security requires a user gesture).</li>
+            <li><b>Auto-refresh</b> is on by default at the bottom to append new lines as they arrive.</li>
+          </ul>
+        </div>
+
+        <div class="tutorialBlock">
+          <h3>Other ways to load</h3>
+          <ul>
+            <li><b>📄 Load log file</b> (single file picker)</li>
+            <li>Drag & drop a log onto the page</li>
+            <li>Paste raw log text and click <b>Parse Paste</b></li>
+          </ul>
+        </div>
+
+        <div class="tutorialBlock">
+          <h3>Tips</h3>
+          <ul>
+            <li>Search filters the <b>current tab</b>.</li>
+            <li><b>Read aloud (Text-to-Speech)</b>: Set your options first, then press <b>▶ Play</b> to start reading.</li>
+            <li><b>Scope</b>: Current tab reads only the tab you’re viewing; All channels reads across the entire log (if your tab is All, both effectively mean everything).</li>
+            <li><b>Filters</b>: Speaker accepts Name or Name: (colon ignored) and reads only the message text (not the name). Optional channel filter narrows further.</li>
+            <li><b>Live “from now”</b>: when you press Play, it starts at the bottom and reads only new matching lines arriving after that.</li>
+            <li><b>Voice + speed</b>: choose a voice and adjust rate for comfort.</li>
+            <li><b>Performance mode</b> keeps huge logs smooth and only renders what is on screen (click a line to see full text). Only use if your log becomes laggy.</li>
+            <li><b>Pop out channels</b>: Click the ↗ icon on a channel tab to open that chat in a separate window (handy for a second monitor). Pop-outs stay live-updated while the main window is open.</li>
+          </ul>
+        </div>
+
+        <div class="tutorialBlock">
+          <h3>Tips Continued</h3>
+          <ul>
+            <li>Folder live mode works best in <b>Chromium</b> browsers (Edge, Opera, Chrome, etc.).</li>
+            <li>In <b>Firefox</b>, use <b>Load</b> / <b>Drag &amp; drop</b> (folder handles are limited). Live chat may not work.</li>
+            <li><b>Combat Summary</b>: Open ⚔ Combat Summary to review your Combat damage later — totals, Top Attacks, and Recent Mobs.</li>
+            <li>Use spell/mob filters and the 5/10/15 dropdowns; click a Recent Hit to jump to that line (highlights for 10s). Use <b>Reset</b> to start fresh from the next fights.</li>
+            <li><b>Add rule mode</b>: Make your own rules and play a custom sound instead of speech (or alongside it).</li>
+            <li>Remember to enable <b>Enable alerts</b>, then save the rule. Rules can be edited.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tutorialActions">
+        <button class="btn small ghost" id="tutorialDontShow">Don’t show again</button>
+        <button class="btn small" id="tutorialGotIt">Got it</button>
+      </div>
+    </div>
+  `;
+}
+
+
+
+/* ---------- Player detection (Logged In As ...) ---------- */
+function detectLoggedInName(items){
+  try{
+    for(const it of (items || [])){
+      const s = String((it && (it.raw || it.text)) || "");
+      const m = s.match(/Logged In As\s+([^.]+)\./i);
+      if(m && m[1]) return String(m[1]).trim();
+    }
+  }catch(e){}
+  return "";
+}
+
+/* ---------- Combat Summary ---------- */
+
+function tsToSecOfDay(ts){
+  // Accepts timestamps like "HH:MM:SS", "HH:MM", or "DD-MM-YY HH:MM:SS"
+  const s = String(ts||"");
+  const re = /(\d{1,2}):(\d{2})(?::(\d{2}))?/g;
+  let m = null, last = null;
+  while((m = re.exec(s)) !== null){ last = m; }
+  if(!last) return null;
+  const hh = Number(last[1]), mm = Number(last[2]), ss = Number(last[3]||"0");
+  if(!Number.isFinite(hh)||!Number.isFinite(mm)||!Number.isFinite(ss)) return null;
+  return (hh*3600)+(mm*60)+ss;
+}
+function tsDisplayTime(ts){
+  // For UI display: show just the time component if present
+  const s = String(ts||"");
+  const re = /(\d{1,2}:\d{2}(?::\d{2})?)/g;
+  let m = null, last = null;
+  while((m = re.exec(s)) !== null){ last = m; }
+  return last ? last[1] : s;
+}
+
+function formatDurationShort(sec){
+  sec = Math.max(0, Math.round(sec||0));
+  const m = Math.floor(sec/60);
+  const s = sec%60;
+  if(m<=0) return s + "s";
+  if(m<60) return m + "m " + s + "s";
+  const h = Math.floor(m/60);
+  const mm = m%60;
+  return h + "h " + mm + "m";
+}
+
+
+const _combatCache = new WeakMap(); // item -> parsed combat info or null
+
+function parseCombat(it){
+  if(!it || (it.channel||"").toLowerCase() !== "combat") return null;
+  if(_combatCache.has(it)) return _combatCache.get(it);
+
+  const txt = String(it.text || "").trim();
+  // Expected: "Spell on Mob #123! Dmg: 54 health, 54 armor"
+  const m = txt.match(/^(.+?)\s+on\s+(.+?)!\s*Dmg:\s*(.+)$/i);
+  if(!m){
+    _combatCache.set(it, null);
+    return null;
+  }
+
+  const spell = (m[1] || "").trim();
+  const target = (m[2] || "").trim();
+  const dmgPart = (m[3] || "").trim();
+
+  let mobId = "";
+  let mobName = target;
+  const mid = target.match(/#(\d+)\s*$/);
+  if(mid){
+    mobId = mid[1];
+    mobName = target.replace(/\s*#\d+\s*$/,"").trim();
+  }
+  const mobKey = mobId ? `${mobName} #${mobId}` : mobName;
+
+  let health = 0, armor = 0;
+  const mh = dmgPart.match(/(\d+)\s*health/i);
+  const ma = dmgPart.match(/(\d+)\s*armor/i);
+  if(mh) health = Number(mh[1]) || 0;
+  if(ma) armor  = Number(ma[1]) || 0;
+
+  // Fallback: if we got neither health nor armor, try first number as "health"
+  if(!mh && !ma){
+    const mn = dmgPart.match(/(\d+)/);
+    if(mn) health = Number(mn[1]) || 0;
+  }
+
+  const out = { spell, mobName, mobId, mobKey, health, armor };
+  _combatCache.set(it, out);
+  return out;
+}
+
+function combatDetectPlayer(combatItems){
+  const counts = new Map();
+  for(const it of combatItems){
+    const who = (it.from || "").trim();
+    if(!who) continue;
+    counts.set(who, (counts.get(who) || 0) + 1);
+  }
+  let best = "";
+  let bestN = 0;
+  for(const [k,v] of counts.entries()){
+    if(v > bestN){ bestN = v; best = k; }
+  }
+  return { best, counts };
+}
+
+function combatEffectiveDamage(info){
+  const f = state.combatFilters || {};
+  const incH = !!f.incHealth;
+  const incA = !!f.incArmor;
+  return (incH ? (info.health||0) : 0) + (incA ? (info.armor||0) : 0);
+}
+
+function combatPassesFilters(info){
+  const f = state.combatFilters || {};
+  const sNeed = (f.spell || "").trim().toLowerCase();
+  const mNeed = (f.mob || "").trim().toLowerCase();
+  const mExact = (f.mobExact || "").trim().toLowerCase();
+
+  if(sNeed && !String(info.spell||"").toLowerCase().includes(sNeed)) return false;
+
+  // If user selected a specific mob instance (mobExact), match by exact mobKey (includes #id)
+  if(mExact){
+    if(String(info.mobKey||"").toLowerCase() !== mExact) return false;
+  }else if(mNeed){
+    const key = String(info.mobKey||"").toLowerCase();
+    const name = String(info.mobName||"").toLowerCase();
+    if(!key.includes(mNeed) && !name.includes(mNeed)) return false;
+  }
+  return true;
+}
+
+function combatSetFilter(which, val){
+  if(!state.combatFilters) state.combatFilters = { spell:"", mob:"", mobExact:"", incHealth:true, incArmor:true, topAttackLimit:10, recentMobLimit:10, resetIndex:0 };
+  state.combatFilters[which] = val;
+  if(which === "mob") state.combatFilters.mobExact = "";
+  if(which === "spell" && el.combatSpell) el.combatSpell.value = val;
+  if(which === "mob" && el.combatMob) el.combatMob.value = val;
+  renderCombatSummary();
+}
+
+function combatSetMobExact(mobKey, displayName){
+  if(!state.combatFilters) state.combatFilters = { spell:"", mob:"", mobExact:"", incHealth:true, incArmor:true, topAttackLimit:10, recentMobLimit:10, resetIndex:0 };
+  const key = String(mobKey || "").trim();
+  state.combatFilters.mobExact = key;
+  // Keep the visible input friendly (no #id), but filter by exact key
+  if(el.combatMob) el.combatMob.value = (displayName || "").trim() || key.replace(/\s*#\d+\s*$/, "");
+  state.combatFilters.mob = el.combatMob ? (el.combatMob.value || "") : "";
+  renderCombatSummary();
+}
+
+
+function combatSetMobExact(mobKey, displayName){
+  if(!state.combatFilters) state.combatFilters = { spell:"", mob:"", mobExact:"", incHealth:true, incArmor:true, topAttackLimit:10, recentMobLimit:10, resetIndex:0 };
+  const key = String(mobKey || "").trim();
+  state.combatFilters.mobExact = key;
+  // Keep the visible input friendly (no #id), but filter by exact key
+  if(el.combatMob) el.combatMob.value = (displayName || "").trim() || key.replace(/\s*#\d+\s*$/, "");
+  state.combatFilters.mob = el.combatMob ? (el.combatMob.value || "") : "";
+  renderCombatSummary();
+}
+
+
+function combatGotoItem(it){
+  if(!it || it.id == null) return;
+  // Jump to Combat tab and scroll to this message
+  state.activeChannel = "Combat";
+  state.search = "";
+  if(el.search) el.search.value = "";
+  renderTabs();
+  renderViewer();
+
+  const id = String(it.id);
+  // Performance mode: row might not be in DOM
+  if(perfEnabled()){
+    const items = activeItems();
+    const idx = items.findIndex(x => String(x.id) === id);
+    const rowH = (el.viewer.classList.contains("perf") ? (Number(virt.rowHeight)||32) : 32);
+    if(idx >= 0){
+      el.viewer.scrollTop = Math.max(0, idx * rowH - 2*rowH);
+      virtRender();
+    }
+  }
+  const node = el.viewer.querySelector(`[data-id="${CSS.escape(id)}"]`);
+  if(node){
+    node.scrollIntoView({ block:"center", behavior:"smooth" });
+  }
+  // Highlight the target line in the Combat log for 10 seconds
+  try{
+    ttsApplyHighlight({ speakerKey:"", itemId: it.id, durationMs: 10000, highlightSpeaker:false, highlightLine:true });
+  }catch(e){}
+}
+
+function renderCombatSummary(){
+  // If panel isn't present (older builds) just skip
+  if(!el.combatTotals || !el.combatTopSpells || !el.combatTopMobs || !el.combatRecent) return;
+
+  // If collapsed, don't do heavy work
+  const body = document.querySelector(`[data-sec-body="combatBox"]`);
+  if(body && body.classList.contains("isCollapsed")) return;
+
+  const combatItemsAll = state.channels.get("Combat") || [];
+  const resetIdx = Math.max(0, Math.min(Number((state.combatFilters && state.combatFilters.resetIndex) || 0) || 0, combatItemsAll.length));
+  const combatItems = combatItemsAll.slice(resetIdx);
+  if(!combatItemsAll.length){
+    if(el.combatPlayer) el.combatPlayer.textContent = "—";
+    if(el.combatSource){ el.combatSource.innerHTML = `<option value="player">Player</option>`; }
+    el.combatTotals.innerHTML = `<div class="muted" style="font-size:12px">Load a log that contains a <b>Combat</b> channel to see summary stats.</div>`;
+    el.combatTopSpells.innerHTML = "";
+    el.combatTopMobs.innerHTML = "";
+    el.combatRecent.innerHTML = "";
+    return;
+  }
+  if(!combatItems.length){
+    if(el.combatPlayer) el.combatPlayer.textContent = String(state.playerName || "").trim() || "—";
+    if(el.combatSource){ el.combatSource.value = "player"; state.combatSourceKey = "player"; }
+    el.combatTotals.innerHTML = `<div class="muted" style="font-size:12px"><b>Combat Summary reset.</b> Waiting for new Combat lines…</div>`;
+    el.combatTopSpells.innerHTML = "";
+    el.combatTopMobs.innerHTML = "";
+    el.combatRecent.innerHTML = "";
+    return;
+  }
+
+  // Prefer "Logged In As ..." header, fallback to most common Combat speaker
+  const whoAll = combatDetectPlayer(combatItemsAll);
+  const playerName = String(state.playerName || "").trim() || String(whoAll.best || "").trim() || "Unknown";
+  if(el.combatPlayer){
+    el.combatPlayer.textContent = playerName;
+    try{
+      const pal = channelColors("Combat");
+      el.combatPlayer.style.borderColor = pal.border;
+      el.combatPlayer.style.background = pal.bg;
+      el.combatPlayer.style.color = pal.text;
+    }catch(e){}
+  }
+
+  // Detect pet combat sources: attacker has an ID AND target has an ID (two #numbers on the line)
+  const petMap = new Map(); // key=attacker string, val={key,name,id,lastSeen}
+  for(const it of combatItems){
+    const attacker = String(it.from || "").trim();
+    if(!attacker) continue;
+    if(attacker === playerName) continue;
+    if(!/#\d+/.test(attacker)) continue;
+    const info = parseCombat(it);
+    if(!info || !info.mobId) continue; // target has no #id -> not a pet-vs-mob line under this rule
+    const idm = attacker.match(/#(\d+)/);
+    const pid = idm ? idm[1] : "";
+    const pname = attacker.replace(/\s*#\d+\s*$/,"").trim();
+    const cur = petMap.get(attacker) || { key: attacker, name: pname, id: pid, lastSeen: 0 };
+    cur.lastSeen = Math.max(cur.lastSeen, Number(it.id || 0) || 0);
+    petMap.set(attacker, cur);
+  }
+  const pets = [...petMap.values()].sort((a,b)=>b.lastSeen - a.lastSeen).slice(0, 5);
+  state.combatPets = pets;
+
+  // Build "Stats for" selector (Player + up to 5 pets)
+  if(el.combatSource){
+    const opts = [];
+    opts.push(`<option value="player">Player</option>`);
+    for(const p of pets){
+      const short = p.id ? (" · " + String(p.id).slice(-4)) : "";
+      const label = `Pet: ${escapeHtml(p.name || p.key)}${escapeHtml(short)}`;
+      opts.push(`<option value="${escapeAttr(p.key)}">${label}</option>`);
+    }
+    el.combatSource.innerHTML = opts.join("");
+    const wanted = String(state.combatSourceKey || "player");
+    const has = (wanted === "player") || pets.some(p=>p.key === wanted);
+    state.combatSourceKey = has ? wanted : "player";
+    el.combatSource.value = state.combatSourceKey;
+  }else{
+    state.combatSourceKey = "player";
+  }
+
+  // Determine which attacker we are summarizing (player or selected pet)
+  let attackerFilter = "";
+  let sourceLabel = "Player";
+  if(state.combatSourceKey === "player"){
+    attackerFilter = (playerName && playerName !== "Unknown") ? playerName : "";
+    sourceLabel = attackerFilter || "Player";
+  }else{
+    attackerFilter = String(state.combatSourceKey || "").trim();
+    sourceLabel = attackerFilter.replace(/\s*#\d+\s*$/,"").trim() || "Pet";
+  }
+
+  // Gather combat items for this source. If we can't identify attacker, fallback to all.
+  const combatItemsSrc = attackerFilter ? combatItems.filter(it => String(it.from || "").trim() === attackerFilter) : combatItems;
+
+  // Track player recovery lines (Combat: "Recovered: X health, Y armor, Z power") since Reset
+  let recH = 0, recA = 0, recP = 0, recN = 0;
+  if(playerName && playerName !== "Unknown"){
+    for(const it of combatItems){
+      if(String(it.from || "").trim() !== playerName) continue;
+      const t = String(it.text || "").trim();
+      const rm = t.match(/^Recovered:\s*([^]+)$/i);
+      if(!rm) continue;
+      const mh = t.match(/(\d+)\s*health/i);
+      const ma = t.match(/(\d+)\s*armor/i);
+      const mp = t.match(/(\d+)\s*power/i);
+      if(mh || ma || mp){
+        recH += mh ? (Number(mh[1]) || 0) : 0;
+        recA += ma ? (Number(ma[1]) || 0) : 0;
+        recP += mp ? (Number(mp[1]) || 0) : 0;
+        recN += 1;
+      }
+    }
+  }
+
+  // Gather parsed combat entries (session + filtered)
+  const allParsed = [];
+  const parsed = [];
+  for(const it of combatItemsSrc){
+    const info = parseCombat(it);
+    if(!info) continue;
+    const eff = combatEffectiveDamage(info);
+    if(eff <= 0) continue;
+    const row = { it, info, eff };
+    allParsed.push(row);
+    if(combatPassesFilters(info)) parsed.push(row);
+  }
+
+  // Session totals (since Reset, ignores spell/mob filters)
+  let sessionH = 0, sessionA = 0, sessionEff = 0;
+  let sessionPeak = { eff:0, spell:"" };
+  for(const row of allParsed){
+    const {info, eff} = row;
+    const h = (state.combatFilters.incHealth ? (info.health||0) : 0);
+    const a = (state.combatFilters.incArmor ? (info.armor||0) : 0);
+    sessionH += h; sessionA += a; sessionEff += eff;
+    if(eff > sessionPeak.eff){ sessionPeak = { eff, spell: info.spell || "" }; }
+  }
+
+  if(!allParsed.length){
+    el.combatTotals.innerHTML = `<div class="muted" style="font-size:12px">No Combat damage lines detected since Reset.</div>`;
+    el.combatTopSpells.innerHTML = "";
+    el.combatTopMobs.innerHTML = "";
+    el.combatRecent.innerHTML = "";
+    return;
+  }
+
+  if(!parsed.length){
+    el.combatTotals.innerHTML = `
+      <div class="cell" style="grid-column:1/-1">
+        <div class="muted">Session total damage (since Reset) — ${escapeHtml(sourceLabel)}</div>
+        <div style="font-weight:900;font-size:14px">${Math.round(sessionEff).toLocaleString()}</div>
+        <div class="muted" style="margin-top:2px">Health: ${Math.round(sessionH).toLocaleString()} • Armor: ${Math.round(sessionA).toLocaleString()} • Peak: ${escapeHtml(sessionPeak.spell || "—")} (${Math.round(sessionPeak.eff)})${(state.combatSourceKey==="player" && recN) ? (" • Recovered: " + Math.round(recH).toLocaleString() + " health, " + Math.round(recA).toLocaleString() + " armor, " + Math.round(recP).toLocaleString() + " power (" + recN + ")") : ""}</div>
+      </div>
+      <div class="cell" style="grid-column:1/-1">
+        <div class="muted">Filtered totals</div>
+        <div style="font-weight:900">No matching Combat entries for the current filters.</div>
+      </div>
+    `;
+    el.combatTopSpells.innerHTML = "";
+    el.combatTopMobs.innerHTML = "";
+    el.combatRecent.innerHTML = "";
+    return;
+  }
+
+  let totalH = 0, totalA = 0, totalEff = 0;
+  let peak = { eff:0, spell:"" };
+  const spells = new Map();
+  const mobs = new Map();
+
+  for(const row of parsed){
+    const {info, eff} = row;
+    const h = (state.combatFilters.incHealth ? (info.health||0) : 0);
+    const a = (state.combatFilters.incArmor ? (info.armor||0) : 0);
+    totalH += h;
+    totalA += a;
+    totalEff += eff;
+
+    if(eff > peak.eff){ peak = { eff, spell: info.spell || "" }; }
+
+    const sp = info.spell || "(unknown spell)";
+    const mo = info.mobKey || "(unknown mob)";
+
+    const s = spells.get(sp) || { casts:0, total:0 };
+    s.casts += 1; s.total += eff; spells.set(sp, s);
+
+    const m = mobs.get(mo) || { casts:0, total:0 };
+    m.casts += 1; m.total += eff; mobs.set(mo, m);
+  }
+
+  const casts = parsed.length;
+  const avg = casts ? (totalEff / casts) : 0;
+
+  el.combatTotals.innerHTML = `
+    <div class="cell" style="grid-column:1/-1">
+      <div class="muted">Session total damage (since Reset)</div>
+      <div style="font-weight:900;font-size:14px">${Math.round(sessionEff).toLocaleString()}</div>
+      <div class="muted" style="margin-top:2px">Health: ${Math.round(sessionH).toLocaleString()} • Armor: ${Math.round(sessionA).toLocaleString()} • Peak: ${escapeHtml(sessionPeak.spell || "—")} (${Math.round(sessionPeak.eff)})</div>
+    </div>
+    <div class="cell"><div class="muted">Filtered health dmg</div><div style="font-weight:900">${Math.round(totalH).toLocaleString()}</div></div>
+    <div class="cell"><div class="muted">Filtered armor dmg</div><div style="font-weight:900">${Math.round(totalA).toLocaleString()}</div></div>
+    <div class="cell"><div class="muted">Filtered casts</div><div style="font-weight:900">${casts.toLocaleString()}</div></div>
+    <div class="cell"><div class="muted">Filtered avg / cast</div><div style="font-weight:900">${avg.toFixed(1)}</div><div class="muted" style="margin-top:2px">Peak: ${escapeHtml(peak.spell || "—")} (${Math.round(peak.eff)})</div></div>
+  `;
+
+  const limAtt = Math.max(1, Number((state.combatFilters && state.combatFilters.topAttackLimit) || 10) || 10);
+  if(el.combatTopAttacksLimit) el.combatTopAttacksLimit.value = String(limAtt);
+  const topSpells = [...spells.entries()].sort((a,b)=>b[1].total - a[1].total).slice(0, limAtt);
+  el.combatTopSpells.innerHTML = topSpells.map(([name, st]) => `
+    <div class="combatRow" data-spell="${escapeAttr(name)}" title="Click to filter by spell">
+      <div class="name">${escapeHtml(name)}</div>
+      <div class="num">${st.casts} · ${Math.round(st.total).toLocaleString()}</div>
+    </div>
+  `).join("") || `<div class="muted" style="font-size:12px">No data.</div>`;
+
+  // Recent mobs (last seen) - treat each unique mob id as its own entry (display without #id)
+  const mobAgg = new Map(); // mobKey -> {name, casts, total, lastSeen}
+  let seenIdx = 0;
+  for(const row of parsed){
+    seenIdx++;
+    const info = row.info;
+    const key = String(info.mobKey || info.mobName || "(unknown mob)").trim(); // includes #id when present
+    const disp = String(info.mobName || key).trim(); // display name without #id
+    const cur = mobAgg.get(key) || { name: disp, casts:0, total:0, lastSeen:0, firstSec:null, lastSec:null };
+    cur.name = disp;
+    cur.casts += 1;
+    cur.total += row.eff;
+    cur.lastSeen = seenIdx; // monotonic within parsed order (chronological)
+    const sec = tsToSecOfDay(row.it && row.it.ts);
+    if(sec !== null){
+      if(cur.firstSec === null) cur.firstSec = sec;
+      cur.lastSec = sec;
+    }
+    mobAgg.set(key, cur);
+  }
+  const limMob = Math.max(1, Number((state.combatFilters && state.combatFilters.recentMobLimit) || 10) || 10);
+  if(el.combatRecentMobsLimit) el.combatRecentMobsLimit.value = String(limMob);
+  const recentMobs = [...mobAgg.entries()].sort((a,b)=>b[1].lastSeen - a[1].lastSeen).slice(0, limMob);
+  el.combatTopMobs.innerHTML = recentMobs.map(([key, st]) => {
+    const dur = (() => {
+      if(st.firstSec!==null && st.lastSec!==null){
+        let d = st.lastSec - st.firstSec;
+        if(d < 0) d += 86400;
+        return formatDurationShort(d);
+      }
+      return "—";
+    })();
+    const dmg = Math.round(st.total).toLocaleString();
+    return `
+      <div class="combatRow mobRow" data-mobkey="${escapeAttr(key)}" data-mobdisp="${escapeAttr(st.name)}" title="Click to filter by this mob (ID: ${escapeAttr(key)})">
+        <div class="name">${escapeHtml(st.name)}</div>
+        <div class="num"><span class="ttk">${escapeHtml(dur)}</span><span class="dmg">${dmg} dmg</span></div>
+      </div>
+    `;
+  }).join("") || `<div class="muted" style="font-size:12px">No data.</div>`;
+
+  // Recent hits (last 12)
+  const rec = parsed.slice(-12).reverse();
+  el.combatRecent.innerHTML = rec.map(({it, info}) => {
+    const h = (state.combatFilters.incHealth ? (info.health||0) : 0);
+    const a = (state.combatFilters.incArmor ? (info.armor||0) : 0);
+    const val = `${h}${state.combatFilters.incArmor ? "/" + a : ""}${(!state.combatFilters.incHealth && state.combatFilters.incArmor) ? "" : ""}`;
+    const desc = `${info.spell} → ${(info.mobName || info.mobKey || "").trim()}`;
+    const v = `${h}${state.combatFilters.incArmor ? "/" + a : ""}`;
+    return `
+      <div class="combatHit" data-id="${escapeAttr(String(it.id||""))}" title="Click to jump to this line">
+        <div class="t">${escapeHtml(tsDisplayTime(it.ts || ""))}</div>
+        <div class="d">${escapeHtml(desc)}</div>
+        <div class="v">${escapeHtml(v)}</div>
+      </div>
+    `;
+  }).join("");
+}
+/* ---------- end Combat Summary ---------- */
+
+
+function renderTutorialOverlay(){
+  if(!el.tutorialOverlay) return;
+
+  const show =
+    (state.tutorialOverride === true) ||
+    (state.tutorialOverride === null && !tutorialHiddenPersisted() && !state.tutorialDismissed && state.all.length === 0);
+
+  el.tutorialOverlay.style.display = show ? "flex" : "none";
+  if(!show){
+    el.tutorialOverlay.innerHTML = "";
+    return;
+  }
+
+  // Render and wire buttons
+  if(!el.tutorialOverlay.innerHTML){
+    el.tutorialOverlay.innerHTML = tutorialMarkup();
+
+    const close = el.tutorialOverlay.querySelector("#tutorialClose");
+    const gotIt = el.tutorialOverlay.querySelector("#tutorialGotIt");
+    const dont = el.tutorialOverlay.querySelector("#tutorialDontShow");
+
+    const hideForSession = () => {
+      state.tutorialDismissed = true;
+      state.tutorialOverride = false;
+      try{ renderCombatSummary(); }catch(e){}
+
+    renderTutorialOverlay();
+    };
+
+    close?.addEventListener("click", hideForSession);
+    gotIt?.addEventListener("click", hideForSession);
+
+    dont?.addEventListener("click", () => {
+      localStorage.setItem(TUTORIAL_HIDE_KEY, "1");
+      hideForSession();
+    });
+  }
+}
+
+function showTutorial(){
+  // show on-demand even if user previously hid it
+  state.tutorialDismissed = false;
+  state.tutorialOverride = true;
+  renderTutorialOverlay();
+}
+
+function maybeAutoTutorialReset(){
+  // If we were forcing the tutorial open and data is now loaded, keep it until user closes.
+  // If tutorial was auto (override=null), it will naturally disappear once state.all has data.
+  if(state.tutorialOverride === false && state.all.length > 0){
+    // once data is loaded, we can reset to auto mode
+    state.tutorialOverride = null;
+  }
+}
+
+function parseLine(line){
+  const m = line.match(/^(\S+\s+\S+)\s*\t\s*\[([^\]]+)\]\s*(.*)$/);
+  if(!m) return { raw: line, ts: "", channel: "Unparsed", from: "", text: line.trim(), kind: "unparsed" };
+  const ts = m[1];
+  const channel = normalizeChannel(m[2]);
+  const rest = (m[3] ?? "").trim();
+
+  let from = "", text = rest;
+  const m2 = rest.match(/^([^:]{1,60}):\s*(.*)$/);
+  if(m2 && channel.toLowerCase() !== "status"){ from = m2[1].trim(); text = m2[2] ?? ""; }
+  const kind = channel.toLowerCase() === "status" ? "status" : "chat";
+  return { raw: line, ts, channel, from, text, kind };
+}
+function parseText(text){
+  const lines = text.replace(/\r\n/g,"\n").split("\n").filter(l => l.trim().length > 0);
+  return lines.map(parseLine);
+}
+function rebuildIndex(){
+  state.channels = new Map();
+  for(const item of state.all){
+    const ch = item.channel || "Unparsed";
+    if(!state.channels.has(ch)) state.channels.set(ch, []);
+    state.channels.get(ch).push(item);
+  }
+}
+function renderTabs(){
+  const counts = new Map(state.channels);
+  const allCount = state.all.length;
+  const channelsSorted = [...counts.keys()].sort((a,b) => a.localeCompare(b));
+  const tabs = ["All", ...channelsSorted, "Pinned"];
+
+  const sumUnread = () => {
+    let s = 0;
+    for(const v of state.unreadCounts.values()) s += (v || 0);
+    return s;
+  };
+
+  el.tabs.innerHTML = "";
+  for(const name of tabs){
+    const btn = document.createElement("div");
+    const isActive = (name === state.activeChannel);
+    btn.className = "tab" + (isActive ? " active" : "");
+
+    const total = name === "All" ? allCount : (name === "Pinned" ? state.pinnedOrder.length : (counts.get(name)?.length ?? 0));
+
+    let unread = 0;
+    if(name === "Pinned"){
+      unread = 0;
+    }else if(name === "All"){
+
+      unread = (state.activeChannel === "All") ? 0 : sumUnread();
+    }else{
+      unread = isActive ? 0 : (state.unreadCounts.get(name) || 0);
+    }
+
+    if(unread > 0) btn.classList.add("unread");
+
+    btn.innerHTML =
+      `<span>${escapeHtml(name)}</span>` +
+      `<span class="badge">${total}</span>` +
+      (unread > 0 ? `<span class="badge new">+${unread}</span>` : ``);
+
+    btn.addEventListener("click", () => {
+      if(name === "All") state.unreadCounts.clear();
+      else state.unreadCounts.set(name, 0);
+      state.activeChannel = name;
+      renderTabs();
+      renderViewer();
+    });
+
+    if(name !== "All" && name !== "Pinned"){
+
+      const po = document.createElement("button");
+      po.className = "popoutBtn";
+      po.type = "button";
+      po.title = `Pop out ${name}`;
+      po.textContent = "↗";
+      po.addEventListener("click", (e) => {
+        e.preventDefault(); e.stopPropagation();
+        openChannelPopout(name);
+      });
+      btn.appendChild(po);
+    }
+
+    el.tabs.appendChild(btn);
+  }
+}
+
+function activeItems(){
+  let items = (state.activeChannel === "Pinned") ? pinnedItems() : (state.activeChannel === "All" ? state.all : (state.channels.get(state.activeChannel) ?? []));
+  const q = state.search.trim().toLowerCase();
+  const qNoColon = q.replace(/:+\s*$/,""); // lets "Name:" match speaker "Name"
+  if(q){
+    items = items.filter(it => {
+      const ts = (it.ts || "").toLowerCase();
+      const ch = (it.channel || "").toLowerCase();
+      const from = (it.from || "").toLowerCase();
+      const msg = (it.text || "").toLowerCase();
+
+      return ts.includes(q) ||
+             ch.includes(q) ||
+             from.includes(qNoColon || q) ||
+             msg.includes(q);
+    });
+  }
+  return items;
+}
+// -----------------------------
+// Performance mode (virtualized rendering)
+// -----------------------------
+const virt = {
+  top: null,
+  mid: null,
+  bottom: null,
+  items: [],
+  rowHeight: 32,
+  overscan: 12,
+  compact: false,
+  bound: false,
+  raf: 0,
+};
+
+function perfEnabled(){
+  return !!(el.performance && el.performance.checked);
+}
+
+function clearHighlightClassesIn(container){
+  for(const r of container.querySelectorAll(".msg.tts-speaker")) r.classList.remove("tts-speaker");
+  for(const r of container.querySelectorAll(".msg.tts-hit")) r.classList.remove("tts-hit");
+}
+
+function applyHighlightClassesToRow(row, it){
+  const now = Date.now();
+  if(state.ttsHiUntil && now < state.ttsHiUntil){
+    if(state.ttsHiSpeakerKey && (row.dataset.fromkey || "") === state.ttsHiSpeakerKey){
+      row.classList.add("tts-speaker");
+    }
+    if(state.ttsHiItemId != null && it && it.id != null && String(it.id) === String(state.ttsHiItemId)){
+      row.classList.add("tts-hit");
+    }
+  }
+}
+
+function buildRow(it, compact){
+  const row = document.createElement("div");
+  row.className = "msg";
+
+  // Data attributes for live features (TTS highlight, etc.)
+  if(it.id != null) row.dataset.id = String(it.id);
+  const _spkKey = (typeof ttsNormalizeKey === "function" ? ttsNormalizeKey(ttsSpeakerOf(it)) : ((it.from||"").toLowerCase()));
+  if(_spkKey) row.dataset.fromkey = _spkKey;
+  if(it.channel) row.dataset.channel = String(it.channel).toLowerCase();
+
+  if(compact){
+    row.style.gridTemplateColumns = "26px 135px 95px 1fr";
+    row.style.padding = "8px 10px";
+    row.style.fontSize = "12px";
+  }
+
+  const colors = channelColors(it.channel);
+  row.style.setProperty('--c', colors.text);
+  row.style.setProperty('--cBorder', colors.border);
+  row.style.setProperty('--cBg', colors.bg);
+  row.style.setProperty('--cEdge', colors.edge);
+
+  const pillClass = channelClass(it.channel); // kept for optional per-channel overrides
+  const chanPill = `<span class="pill ${pillClass}">[${escapeHtml(it.channel)}]</span>`;
+  let who = it.from ? `<span class="from">${escapeHtml(it.from)}:</span> ` : "";
+  let text = escapeHtml(it.text);
+  if(it.kind === "status"){ who = ""; text = `<span class="statusLine">${text}</span>`; }
+
+  const pinned = !!(it._pinned || (it.pinKey && state.pinned.has(it.pinKey)));
+  row.innerHTML = `
+    <div class="pinCell"><button class="pinBtn${pinned ? " pinned" : ""}" type="button" title="${pinned ? "Unpin" : "Pin"}">📌</button></div>
+    <div class="ts">${escapeHtml(it.ts)}</div>
+    <div class="chan">${chanPill}</div>
+    <div class="text">${who}${text}</div>
+  `;
+  const pinBtn = row.querySelector(".pinBtn");
+  if(pinBtn){
+    pinBtn.addEventListener("click", (e)=>{
+      e.preventDefault(); e.stopPropagation();
+      togglePinForItem(it);
+    });
+  }
+
+  // Full-text helper for Performance mode (rows may be ellipsized)
+  const plain = (() => {
+    const ch = it.channel || "Unparsed";
+    // Unread tracking: if you are not on this channel tab (and not on All), count it as unread.
+    if(state.activeChannel !== "All" && state.activeChannel !== "Pinned" && ch !== state.activeChannel){
+      state.unreadCounts.set(ch, (state.unreadCounts.get(ch) || 0) + 1);
+    }
+    const speakerPart = (it.kind === "status" || !it.from) ? "" : (it.from + ": ");
+    const body = (it.text || "");
+    return `${it.ts} [${ch}] ${speakerPart}${body}`;
+  })();
+  row.dataset.preview = plain;
+  row.title = plain;
+
+  applyHighlightClassesToRow(row, it);
+  return row;
+}
+
+function ensureVirtScaffold(){
+  if(virt.top && virt.mid && virt.bottom) return;
+
+  el.viewer.innerHTML = "";
+  virt.top = document.createElement("div");
+  virt.mid = document.createElement("div");
+  virt.bottom = document.createElement("div");
+
+  // spacers
+  virt.top.style.height = "0px";
+  virt.bottom.style.height = "0px";
+
+  el.viewer.appendChild(virt.top);
+  el.viewer.appendChild(virt.mid);
+  el.viewer.appendChild(virt.bottom);
+
+  if(!virt.bound){
+    el.viewer.addEventListener("scroll", () => {
+      if(!perfEnabled()) return;
+      if(virt.raf) cancelAnimationFrame(virt.raf);
+      virt.raf = requestAnimationFrame(() => {
+        virt.raf = 0;
+        virtRender();
+      });
+    }, { passive: true });
+    virt.bound = true;
+  }
+}
+
+function virtRender(){
+  if(!perfEnabled()){
+    return;
+  }
+  ensureVirtScaffold();
+
+  const items = virt.items || [];
+  const total = items.length;
+  const rowH = Math.max(18, Number(virt.rowHeight) || 32);
+  const st = el.viewer.scrollTop;
+  const vh = el.viewer.clientHeight;
+
+  const start = Math.max(0, Math.floor(st / rowH) - virt.overscan);
+  const end = Math.min(total, Math.ceil((st + vh) / rowH) + virt.overscan);
+
+  virt.top.style.height = (start * rowH) + "px";
+  virt.bottom.style.height = ((total - end) * rowH) + "px";
+
+  // Render visible slice
+  virt.mid.innerHTML = "";
+  for(let i=start; i<end; i++){
+    virt.mid.appendChild(buildRow(items[i], virt.compact));
+  }
+}
+
+function renderViewer(){
+  renderPinnedBar();
+  const items = activeItems();
+  const compact = el.compact.checked;
+  const wantAuto = el.autoscroll.checked;
+  const perf = perfEnabled();
+
+  // "near bottom" based on current scroll metrics
+  const wasNearBottom = wantAuto && (el.viewer.scrollTop + el.viewer.clientHeight >= el.viewer.scrollHeight - 40);
+
+  if(!perf){
+    el.viewer.classList.remove("perf");
+    el.viewer.style.removeProperty("--rowH");
+
+    // tear down virt state (keep bound scroll handler; it is gated by perfEnabled())
+    virt.items = [];
+    virt.compact = compact;
+
+    el.viewer.innerHTML = "";
+    for(const it of items){
+      el.viewer.appendChild(buildRow(it, compact));
+    }
+  }else{
+    el.viewer.classList.add("perf");
+    // Fixed row height so virtualization stays accurate
+    const rowH = compact ? 26 : 32;
+    el.viewer.style.setProperty("--rowH", rowH + "px");
+    virt.items = items;
+    virt.rowHeight = rowH;
+    virt.compact = compact;
+
+    ensureVirtScaffold();
+    virtRender();
+  }
+
+  el.count.textContent = String(state.all.length);
+  const chCount = state.channels.size;
+  const showing = items.length;
+  el.stats.textContent = state.all.length
+    ? `Channels: ${chCount} · Showing: ${showing} · Active: ${state.activeChannel}${state.search ? " · Search: “" + state.search + "”" : ""}`
+    : "No data loaded.";
+
+  renderTutorialOverlay();
+  maybeAutoTutorialReset();
+
+  if(wasNearBottom){
+    el.viewer.scrollTop = Math.max(0, el.viewer.scrollHeight - el.viewer.clientHeight);
+    if(perf) virtRender();
+  }
+}
+function loadText(text, sourceLabel=""){
+  try{ if(typeof ttsSupported === "function" && ttsSupported()) ttsStop(); }catch(e){}
+  const parsed = parseText(text);
+  state.all = parsed;
+  state.nextId = 0;
+  for(const it of state.all){ it.id = ++state.nextId; }
+  rebuildIndex();
+  // Detect character name from log header (e.g. 'Logged In As NAME.')
+  state.playerName = detectLoggedInName(parsed) || "";
+  state.combatSourceKey = "player";
+  state.combatPets = [];
+  state.unreadCounts = new Map();
+  // Reset Combat Summary baseline when loading a new log
+  if(state.combatFilters){ state.combatFilters.resetIndex = 0; }
+  try{ if(typeof alerts !== "undefined") alerts.lastProcessedId = state.nextId || 0; }catch(e){}
+  if(state.activeChannel !== "All" && !state.channels.has(state.activeChannel)) state.activeChannel = "All";
+  renderTabs();
+  renderViewer();
+  renderColorPickers();
+  try{ renderCombatSummary(); }catch(e){}
+  try{ popoutBroadcastColors(); }catch(e){}
+  if(sourceLabel) el.folderNote.textContent = `Loaded ${parsed.length} lines from ${sourceLabel}.`;
+}
+
+
+/* ---------- Channel Pop-outs (Option 1) ---------- */
+let popBC = null;
+try{ popBC = new BroadcastChannel("pg_chat_viewer_popouts_v1"); }catch(e){ popBC = null; }
+
+function getChannelColorMap(){
+  // Build a full palette map for known channels (including presets + deterministic colors + user overrides)
+  // Keys are lowercased channel names so pop-outs can match reliably.
+  const out = {};
+  try{
+    const names = new Set();
+    names.add("unparsed");
+    if(state && state.channels && typeof state.channels.keys === "function"){
+      for(const ch of state.channels.keys()) names.add(String(ch||"unparsed"));
+    }
+    // Also include any explicit overrides that might not yet exist in state.channels
+    if(state && state.colorOverrides && typeof state.colorOverrides.keys === "function"){
+      for(const k of state.colorOverrides.keys()) names.add(String(k||"unparsed"));
+    }
+    for(const ch of names){
+      const pal = channelColors(ch);
+      out[String(ch).toLowerCase()] = pal; // {text,border,bg,edge}
+    }
+  }catch(e){}
+  return out;
+}
+
+function popoutPost(msg){
+  try{ if(popBC) popBC.postMessage(msg); }catch(e){}
+}
+
+function popoutBroadcastNewItems(items){
+  if(!popBC || !items || !items.length) return;
+  // Broadcast new items to all popouts; each popout filters by its channel
+  popoutPost({ type: "NEW_ITEMS", to: "*", items });
+}
+
+function popoutBroadcastColors(){
+  if(!popBC) return;
+  popoutPost({ type: "COLORS", to: "*", colors: getChannelColorMap() });
+}
+
+function openChannelPopout(channelName, opts={}){
+  // User gesture required in most browsers; this is called from a click handler.
+  const popoutId = "po_" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+  const speakerFilter = String((opts && opts.speaker) || "").trim();
+  const title = String((opts && opts.label) || "").trim() || (`PG Chat — ${channelName}` + (speakerFilter ? ` — ${speakerFilter.replace(/\s*#\d+\s*$/,"")}` : ""));
+  const w = 520, h = 760;
+  const left = Math.max(0, (window.screenX || 0) + 40);
+  const top = Math.max(0, (window.screenY || 0) + 40);
+  const win = window.open("", popoutId, `popup=yes,width=${w},height=${h},left=${left},top=${top}`);
+  if(!win){ 
+    showWarning("Popup blocked. Allow pop-ups for this page to use channel pop-outs.", true);
+    return;
+  }
+
+  const safeChannel = String(channelName || "Unparsed");
+  const html = `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>${escapeHtml(title)}</title>
+<style>
+  :root{
+    --bg:#0f1117; --panel:#161a24; --text:#e8e8ee; --muted:#a9adbd; --border:rgba(255,255,255,.12);
+    --accent:#5aa9ff;
+  }
+  html,body{ height:100%; margin:0; background:var(--bg); color:var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+  .wrap{ height:100%; display:flex; flex-direction:column; }
+  .top{
+    display:flex; gap:10px; align-items:center; padding:10px 10px;
+    background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,0));
+    border-bottom:1px solid var(--border);
+  }
+  .pill{ font-size:12px; padding:4px 10px; border-radius:999px; background:rgba(255,255,255,.06); border:1px solid var(--border); }
+  .btn{
+    font-size:12px; padding:6px 10px; border-radius:10px; border:1px solid var(--border);
+    background:rgba(255,255,255,.06); color:var(--text); cursor:pointer;
+  }
+  .btn:hover{ background:rgba(255,255,255,.10); }
+  .spacer{ flex:1; }
+  .toggle{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); }
+  .chat{
+    flex:1; overflow:auto; padding:10px 10px 14px 10px;
+  }
+  .row{
+    padding:6px 10px; border-radius:12px; margin:6px 0;
+    background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06);
+  }
+  .meta{ font-size:12px; color:var(--muted); display:flex; gap:8px; align-items:center; }
+  .name{ font-weight:700; }
+  .msg{ margin-top:4px; white-space:pre-wrap; word-break:break-word; }
+  .ts{ font-variant-numeric: tabular-nums; }
+  .footer{ padding:8px 10px; border-top:1px solid var(--border); color:var(--muted); font-size:12px; }
+
+    /* Combat Summary */
+    .combatTotals{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:8px;
+      margin: 10px 0 12px 0;
+    }
+    .combatTotals .cell{
+      border:1px solid var(--border);
+      background: rgba(15,23,42,.25);
+      border-radius: 12px;
+      padding: 8px 10px;
+      font-size: 12px;
+      color: var(--text);
+    }
+    .combatTotals .cell .muted{font-size:11px}
+    .combatGrid{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+    .subHead{font-weight:900; font-size:12px; letter-spacing:.2px; color:var(--text); margin: 4px 0 6px 0}
+    .combatList{display:flex; flex-direction:column; gap:6px}
+    .combatRow{
+      display:flex; justify-content:space-between; align-items:center;
+      gap:10px;
+      border:1px solid var(--border);
+      background: rgba(15,23,42,.22);
+      border-radius: 12px;
+      padding: 7px 8px;
+      cursor:pointer;
+      user-select:none;
+    }
+    .combatRow:hover{border-color: rgba(96,165,250,.35); background: rgba(15,23,42,.30)}
+    .combatRow .name{
+      flex:1;
+      min-width:0;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      font-size:12px;
+      color: var(--text);
+    }
+    .combatRow .num{
+      font-variant-numeric: tabular-nums;
+      font-size:12px;
+      color: var(--muted);
+      white-space:nowrap;
+    }
+    .combatRecent{display:flex; flex-direction:column; gap:6px; max-height: 180px; overflow:auto; padding-right:4px}
+    .combatHit{
+      border:1px solid var(--border);
+      background: rgba(15,23,42,.18);
+      border-radius: 12px;
+      padding: 7px 8px;
+      cursor:pointer;
+      user-select:none;
+      display:flex;
+      gap:10px;
+      align-items:baseline;
+    }
+    .combatHit:hover{border-color: rgba(96,165,250,.35); background: rgba(15,23,42,.28)}
+    .combatHit .t{font-size:11px; color: var(--muted); width:64px; flex:0 0 64px; font-variant-numeric: tabular-nums}
+    .combatHit .d{font-size:12px; color: var(--text); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+    .combatHit .v{font-size:12px; color: var(--muted); flex:0 0 auto; font-variant-numeric: tabular-nums; white-space:nowrap}
+
+    .secBody[data-sec-body="combatBox"]{overflow-x:hidden}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="pill" id="chPill">Channel: ${escapeHtml(safeChannel)}</div>
+    <div class="pill" id="fromPill" style="display:none"></div>
+    <div class="pill" id="countPill">0</div>
+    <div class="spacer"></div>
+    <label class="toggle"><input id="follow" type="checkbox" checked/> Follow (auto-scroll)</label>
+    <button class="btn" id="clearBtn">Clear</button>
+  </div>
+  <div class="chat" id="chat"></div>
+  <div class="footer" id="footer">Waiting for main window…</div>
+</div>
+
+<script>
+  const POP_ID = ${JSON.stringify(popoutId)};
+  const CHANNEL = ${JSON.stringify(safeChannel)};
+  const SPEAKER = ${JSON.stringify(speakerFilter)};
+  let bc = null;
+  try{ bc = new BroadcastChannel("pg_chat_viewer_popouts_v1"); }catch(e){ bc = null; }
+  const el = {
+  pinnedBar: document.getElementById("pinnedBar"),
+    chat: document.getElementById("chat"),
+    fromPill: document.getElementById("fromPill"),
+    follow: document.getElementById("follow"),
+    clearBtn: document.getElementById("clearBtn"),
+    footer: document.getElementById("footer"),
+    countPill: document.getElementById("countPill"),
+    chPill: document.getElementById("chPill"),
+  };
+
+  if(SPEAKER && el.fromPill){
+    el.fromPill.style.display = "inline-flex";
+    el.fromPill.textContent = "From: " + SPEAKER.replace(/\s*#\d+\s*$/,"");
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>\\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',\"'\":'&#39;'}[c]));
+  }
+  function atBottom(){
+    const t = el.chat;
+    return (t.scrollHeight - t.scrollTop - t.clientHeight) < 8;
+  }
+  function scrollToBottom(){
+    el.chat.scrollTop = el.chat.scrollHeight;
+  }
+  const CHANNEL_KEY = String(CHANNEL || "Unparsed").toLowerCase();
+
+  function applyChannelPill(){
+    const pal = colors?.[CHANNEL_KEY];
+    if(!pal) return;
+    if(pal.border) el.chPill.style.borderColor = pal.border;
+    if(pal.bg) el.chPill.style.background = pal.bg;
+    if(pal.edge) el.chPill.style.boxShadow = "inset 3px 0 0 " + pal.edge;
+    if(pal.edge) el.chPill.style.color = pal.edge;
+  }
+
+  function renderItem(it, colors){
+    const row = document.createElement("div");
+    row.className = "row";
+
+    const chKey = String(it.channel || "Unparsed").toLowerCase();
+    const pal = colors?.[chKey] || null;
+
+    if(pal){
+      if(pal.border) row.style.borderColor = pal.border;
+      if(pal.edge) row.style.boxShadow = "inset 3px 0 0 " + pal.edge;
+      if(pal.bg) row.style.background = pal.bg;
+    }
+
+    const name = it.from || it.speaker || "";
+    const ts = it.ts || it.time || "";
+    const msgText = it.text || it.raw || "";
+
+    row.innerHTML =
+      '<div class="meta">' +
+        (ts ? '<span class="ts">'+escapeHtml(ts)+'</span>' : '') +
+        (name ? '<span class="name" style="'+(pal?.edge ? 'color:'+pal.edge+';' : '')+'">'+escapeHtml(name)+':</span>' : '') +
+      '</div>' +
+      '<div class="msg" style="'+(pal?.text ? 'color:'+pal.text+';' : '')+'">'+escapeHtml(msgText)+'</div>';
+    return row;
+  }
+
+  let colors = {};
+  let count = 0;
+
+  function updateCount(){
+    el.countPill.textContent = String(count);
+  }
+
+  function applySnapshot(payload){
+    colors = payload.colors || colors || {};
+    applyChannelPill();
+    el.chat.innerHTML = "";
+    count = 0;
+    const items = (payload.items || []).filter(it => String(it.channel || "Unparsed").toLowerCase() === CHANNEL_KEY && (!SPEAKER || String(it.from || "").trim() === SPEAKER));
+    for(const it of items){
+      el.chat.appendChild(renderItem(it, colors));
+      count++;
+    }
+    updateCount();
+    el.footer.textContent = "Live.";
+    scrollToBottom();
+  }
+
+  function handleNewItems(payload){
+    colors = payload.colors || colors || {};
+    applyChannelPill();
+    const items = (payload.items || []).filter(it => String(it.channel || "Unparsed").toLowerCase() === CHANNEL_KEY && (!SPEAKER || String(it.from || "").trim() === SPEAKER));
+    if(!items.length) return;
+    const shouldFollow = el.follow.checked && atBottom();
+    for(const it of items){
+      el.chat.appendChild(renderItem(it, colors));
+      count++;
+    }
+    updateCount();
+    if(el.follow.checked && shouldFollow) scrollToBottom();
+  }
+
+  function handleColors(payload){
+    colors = payload.colors || colors || {};
+    applyChannelPill();
+  }
+
+  if(bc){
+    bc.onmessage = (ev) => {
+      const m = ev.data || {};
+      if(m.to && m.to !== "*" && m.to !== POP_ID) return;
+      if(m.type === "SNAPSHOT") applySnapshot(m);
+      if(m.type === "NEW_ITEMS") handleNewItems(m);
+      if(m.type === "COLORS") handleColors(m);
+    };
+    // Ask main for snapshot
+    bc.postMessage({ type: "HELLO", to: "*", popoutId: POP_ID, channel: CHANNEL });
+    el.footer.textContent = "Requesting snapshot…";
+  }else{
+    el.footer.textContent = "BroadcastChannel not supported in this browser.";
+  }
+
+  el.clearBtn.addEventListener("click", () => {
+    el.chat.innerHTML = "";
+    count = 0;
+    updateCount();
+  });
+<\/script>
+</body>
+</html>`;
+
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+
+  // Immediately send colors (helps first paint before snapshot arrives)
+  popoutBroadcastColors();
+
+  // Also request snapshot in case popout couldn't send HELLO (rare)
+  popoutPost({ type: "HELLO", to: "*", popoutId, channel: safeChannel });
+}
+
+if(popBC){
+  popBC.onmessage = (ev) => {
+    const m = ev.data || {};
+    if(m.type === "HELLO" && m.popoutId){
+      const channel = String(m.channel || "Unparsed");
+      const chItems = (state.channels.get(channel) || []);
+      const max = 2000;
+      const items = chItems.length > max ? chItems.slice(-max) : chItems.slice();
+      popoutPost({ type: "SNAPSHOT", to: m.popoutId, channel, items, colors: getChannelColorMap() });
+    }
+  };
+}
+/* ---------- end Channel Pop-outs ---------- */
+
+/* ---------- Pinned Messages ---------- */
+function computePinKey(it){
+  // Stable-ish key across reloads for the same log line
+  const ts = it.ts || "";
+  const ch = it.channel || "Unparsed";
+  const from = it.from || "";
+  const text = it.text || "";
+  // Include kind to distinguish status vs normal formatting
+  return `${ts}||${ch}||${from}||${it.kind||""}||${text}`;
+}
+function savePins(){
+  try{
+    const arr = state.pinnedOrder.map(k => state.pinned.get(k)).filter(Boolean);
+    localStorage.setItem("pg_pins_v1", JSON.stringify(arr));
+  }catch(e){}
+}
+function loadPins(){
+  try{
+    const raw = localStorage.getItem("pg_pins_v1");
+    if(!raw) return;
+    const arr = JSON.parse(raw);
+    if(!Array.isArray(arr)) return;
+    state.pinned.clear();
+    state.pinnedOrder = [];
+    for(const snap of arr){
+      if(!snap || !snap.pinKey) continue;
+      state.pinned.set(snap.pinKey, snap);
+      state.pinnedOrder.push(snap.pinKey);
+    }
+  }catch(e){}
+}
+function isPinnedKey(pinKey){
+  return !!(pinKey && state.pinned.has(pinKey));
+}
+function togglePinForItem(it){
+  if(!it) return;
+  const pinKey = it.pinKey || computePinKey(it);
+  it.pinKey = pinKey;
+  if(state.pinned.has(pinKey)){
+    state.pinned.delete(pinKey);
+    state.pinnedOrder = state.pinnedOrder.filter(k => k !== pinKey);
+  }else{
+    const snap = {
+      pinKey,
+      ts: it.ts || "",
+      channel: it.channel || "Unparsed",
+      from: it.from || "",
+      text: it.text || "",
+      kind: it.kind || "",
+    };
+    state.pinned.set(pinKey, snap);
+    state.pinnedOrder.push(pinKey);
+  }
+  savePins();
+  renderTabs();
+  renderViewer();
+}
+function pinnedItems(){
+  // Prefer live item if currently loaded (so highlighting/jump still works)
+  const byKey = new Map();
+  for(const it of state.all){
+    if(it.pinKey) byKey.set(it.pinKey, it);
+  }
+  const out = [];
+  for(const k of state.pinnedOrder){
+    const live = byKey.get(k);
+    if(live) out.push(live);
+    else{
+      const snap = state.pinned.get(k);
+      if(snap) out.push({ ...snap, id: null, pinKey: snap.pinKey });
+    }
+  }
+  return out;
+}
+function clearAllPins(){
+  state.pinned.clear();
+  state.pinnedOrder = [];
+  savePins();
+  renderTabs();
+  renderViewer();
+}
+function renderPinnedBar(){
+  if(!el.pinnedBar) return;
+  const isPinnedTab = (state.activeChannel === "Pinned");
+  if(!isPinnedTab){
+    el.pinnedBar.style.display = "none";
+    return;
+  }
+  const n = state.pinnedOrder.length;
+  el.pinnedBar.style.display = "flex";
+  el.pinnedBar.innerHTML = `
+    <div class="left">
+      <strong>📌 Pinned messages</strong>
+      <span class="muted">${n} pinned</span>
+    </div>
+    <div class="right">
+      <button class="btn small pinClear" id="pinClearAll" type="button">Clear all</button>
+    </div>
+  `;
+  const btn = document.getElementById("pinClearAll");
+  if(btn) btn.addEventListener("click", clearAllPins);
+}
+/* ---------- end Pinned Messages ---------- */
+
+
+
+function appendItems(items, sourceLabel=""){
+  if(!items || !items.length) return;
+
+  // Assign stable incremental ids to new items (used for live TTS from-now behavior)
+  for(const it of items){
+    if(it.id == null) it.id = ++state.nextId;
+    it.pinKey = it.pinKey || computePinKey(it);
+    if(isPinnedKey(it.pinKey)) it._pinned = true;
+    state.all.push(it);
+    const ch = it.channel || "Unparsed";
+    if(!state.channels.has(ch)) state.channels.set(ch, []);
+    state.channels.get(ch).push(it);
+  }
+
+  renderTabs();
+  renderViewer();
+  renderColorPickers();
+  try{ renderCombatSummary(); }catch(e){}
+  try{ popoutBroadcastColors(); }catch(e){}
+
+  try{ if(typeof ttsHandleNewItems === "function") ttsHandleNewItems(items); }catch(e){}
+
+  try{ if(typeof alertsHandleNewItems === "function") alertsHandleNewItems(items); }catch(e){}
+
+  try{ popoutBroadcastNewItems(items); }catch(e){}
+
+  if(sourceLabel){
+    el.folderNote.textContent = `Updated from ${sourceLabel}. (+${items.length} new lines)`;
+  }
+}
+
+async function loadFromFileHandle(fileHandle, label=""){
+  const file = await fileHandle.getFile();
+  const text = await file.text();
+
+  state.currentFileHandle = fileHandle;
+  state.currentFileName = file.name || label || "";
+  state.currentFileSize = file.size;
+  state.tailRemainder = "";
+
+  loadText(text, file.name || label || "selected file");
+}
+
+async function refreshCurrentFileIncremental(){
+  if(!state.currentFileHandle) return;
+
+  try{
+    const file = await state.currentFileHandle.getFile();
+
+    if(file.size < (state.currentFileSize || 0)){
+      await loadFromFileHandle(state.currentFileHandle, state.currentFileName || "current file");
+      return;
+    }
+
+    if(file.size === (state.currentFileSize || 0)) return;
+
+    const slice = file.slice(state.currentFileSize || 0, file.size);
+    let chunk = await slice.text();
+    if(!chunk){
+      state.currentFileSize = file.size;
+      return;
+    }
+
+    chunk = (state.tailRemainder || "") + chunk;
+
+    const endsWithNewline = /\n$/.test(chunk) || /\r\n$/.test(chunk);
+    chunk = chunk.replace(/\r\n/g,"\n");
+    let lines = chunk.split("\n");
+
+    if(!endsWithNewline){
+      state.tailRemainder = lines.pop() || "";
+    }else{
+      state.tailRemainder = "";
+      if(lines.length && lines[lines.length-1] === "") lines.pop();
+    }
+
+    const newItems = lines.filter(l => l.trim().length > 0).map(parseLine);
+    state.currentFileSize = file.size;
+
+    if(newItems.length){
+      appendItems(newItems, file.name || state.currentFileName || "current file");
+    }
+  }catch(err){
+    showWarning(`Auto-refresh failed. You may need to click <b>🔓 Grant access</b> again. Error: <code>${escapeHtml(String(err))}</code>`, true);
+    stopAutoRefresh();
+  }
+}
+
+function stopAutoRefresh(){
+  if(state.refreshTimer){
+    clearInterval(state.refreshTimer);
+    state.refreshTimer = null;
+  }
+}
+
+function startAutoRefresh(){
+  stopAutoRefresh();
+  const ms = parseInt(el.refreshInterval?.value || "2000", 10);
+  if(!state.currentFileHandle){
+    showWarning(`Auto-refresh is on, but no current log is selected. Choose a file from the list first.`, true);
+    return;
+  }
+  showWarning("", false);
+  state.refreshTimer = setInterval(refreshCurrentFileIncremental, isFinite(ms) ? ms : 2000);
+}
+
+
+/* File input / DnD / Paste */
+el.file.addEventListener("change", async (e) => {
+  const file = e.target.files?.[0];
+  if(!file) return;
+  // File picker gives a File object, not a persistent handle; auto-refresh works best via the folder picker list.
+  state.currentFileHandle = null;
+  state.currentFileName = file.name || "";
+  state.currentFileSize = file.size || 0;
+  state.tailRemainder = "";
+  loadText(await file.text(), file.name);
+  if(el.autoRefresh?.checked){
+    showWarning(`Auto-refresh needs a folder-selected file (Chrome/Edge/Brave). Pick a log from the folder list to enable live updates.`, true);
+  }
+});
+["dragenter","dragover"].forEach(ev => el.drop.addEventListener(ev, (e) => { e.preventDefault(); el.drop.classList.add("drag"); }));
+["dragleave","drop"].forEach(ev => el.drop.addEventListener(ev, (e) => { e.preventDefault(); el.drop.classList.remove("drag"); }));
+el.drop.addEventListener("drop", async (e) => {
+  const file = e.dataTransfer?.files?.[0];
+  if(!file) return;
+  loadText(await file.text(), file.name);
+});
+el.parsePaste.addEventListener("click", () => {
+  const t = el.paste.value || "";
+  if(t.trim()) loadText(t, "pasted text");
+});
+el.clear.addEventListener("click", () => {
+  stopAutoRefresh();
+  try{ if(typeof ttsSupported === "function" && ttsSupported()) ttsStop(); }catch(e){}
+  state.all = []; state.channels = new Map(); state.unreadCounts = new Map(); state.activeChannel = "All"; state.search = "";
+  if(state.combatFilters){ state.combatFilters.resetIndex = 0; state.combatFilters.spell=""; state.combatFilters.mob=""; }
+  if(el.combatSpell) el.combatSpell.value = "";
+  if(el.combatMob) el.combatMob.value = "";
+  el.search.value = ""; el.paste.value = "";
+  renderTabs(); renderViewer(); renderColorPickers();
+  try{ renderCombatSummary(); }catch(e){}
+  el.folderNote.textContent = "Choose a folder containing your chat logs, then pick a file below.";
+});
+if(el.tutorialBtn) el.tutorialBtn.addEventListener("click", () => { showTutorial(); });
+
+el.search.addEventListener("input", () => { state.search = el.search.value || ""; renderViewer(); });
+
+// Combat Summary filters
+if(el.combatSpell) el.combatSpell.addEventListener("input", () => {
+  state.combatFilters.spell = el.combatSpell.value || "";
+  renderCombatSummary();
+});
+if(el.combatMob) el.combatMob.addEventListener("input", () => {
+  state.combatFilters.mob = el.combatMob.value || "";
+  state.combatFilters.mobExact = "";
+  renderCombatSummary();
+});
+
+if(el.combatSource) el.combatSource.addEventListener("change", () => {
+  state.combatSourceKey = el.combatSource.value || "player";
+  renderCombatSummary();
+});
+if(el.combatSourcePopout) el.combatSourcePopout.addEventListener("click", () => {
+  const src = (state.combatSourceKey || (el.combatSource ? el.combatSource.value : "player") || "player");
+  const player = String(state.playerName || "").trim();
+  let speaker = "";
+  let label = "";
+  if(src === "player"){
+    speaker = player;
+    label = player || "Player";
+  }else{
+    speaker = src;
+    label = speaker.replace(/\s*#\d+\s*$/, "");
+  }
+  // Open a Combat pop-out filtered by this attacker (if known)
+  openChannelPopout("Combat", { speaker, label: label ? ("Combat — " + label) : "Combat" });
+});
+
+if(el.combatIncHealth) el.combatIncHealth.addEventListener("change", () => {
+  state.combatFilters.incHealth = !!el.combatIncHealth.checked;
+  renderCombatSummary();
+});
+if(el.combatIncArmor) el.combatIncArmor.addEventListener("change", () => {
+  state.combatFilters.incArmor = !!el.combatIncArmor.checked;
+  renderCombatSummary();
+});
+if(el.combatClearSpell) el.combatClearSpell.addEventListener("click", () => combatSetFilter("spell",""));
+if(el.combatClearMob) el.combatClearMob.addEventListener("click", () => combatSetFilter("mob",""));
+if(el.combatTopAttacksLimit) el.combatTopAttacksLimit.addEventListener("change", () => {
+  state.combatFilters.topAttackLimit = Number(el.combatTopAttacksLimit.value) || 10;
+  renderCombatSummary();
+});
+if(el.combatRecentMobsLimit) el.combatRecentMobsLimit.addEventListener("change", () => {
+  state.combatFilters.recentMobLimit = Number(el.combatRecentMobsLimit.value) || 10;
+  renderCombatSummary();
+});
+if(el.combatReset) el.combatReset.addEventListener("click", () => {
+  const combatItemsAll = state.channels.get("Combat") || [];
+  state.combatFilters.resetIndex = combatItemsAll.length; // ignore current history
+  state.combatFilters.spell = "";
+  state.combatFilters.mob = "";
+  if(el.combatSpell) el.combatSpell.value = "";
+  if(el.combatMob) el.combatMob.value = "";
+  renderCombatSummary();
+});
+
+// Click rows to set filters / jump to line
+document.addEventListener("click", (e) => {
+  const spellRow = e.target.closest && e.target.closest("#combatTopSpells .combatRow");
+  if(spellRow){
+    combatSetFilter("spell", spellRow.getAttribute("data-spell") || "");
+    return;
+  }
+  const mobRow = e.target.closest && e.target.closest("#combatTopMobs .combatRow");
+  if(mobRow){
+    combatSetMobExact(mobRow.getAttribute("data-mobkey") || "", mobRow.getAttribute("data-mobdisp") || "");
+    return;
+  }
+  const hit = e.target.closest && e.target.closest("#combatRecent .combatHit");
+  if(hit){
+    const id = hit.getAttribute("data-id");
+    if(!id) return;
+    const it = state.all.find(x => String(x.id) === String(id));
+    if(it) combatGotoItem(it);
+  }
+});
+
+// UI toggles
+if(el.compact) el.compact.addEventListener("change", () => { renderViewer(); });
+if(el.performance) el.performance.addEventListener("change", () => {
+  localStorage.setItem("pg_perfMode", el.performance.checked ? "1" : "0");
+  // Show/hide full-text preview helper when performance mode is toggled
+  if(el.perfPreview){
+    if(el.performance.checked){
+      el.perfPreview.style.display = "flex";
+      if(el.perfPreviewHint) el.perfPreviewHint.style.display = "block";
+      if(el.perfPreviewBody) el.perfPreviewBody.textContent = "";
+    }else{
+      el.perfPreview.style.display = "none";
+    }
+  }
+  renderViewer();
+});
+if(el.autoRefresh) el.autoRefresh.addEventListener("change", () => {
+  if(el.autoRefresh.checked) startAutoRefresh();
+  else stopAutoRefresh();
+});
+if(el.refreshInterval) el.refreshInterval.addEventListener("change", () => {
+  if(el.autoRefresh?.checked) startAutoRefresh();
+});
+
+window.addEventListener("keydown", (e) => {
+  if(e.key === "Escape"){ state.search = ""; el.search.value = ""; renderViewer(); }
+  if(e.key === "Enter" && (e.metaKey || e.ctrlKey)) el.autoscroll.checked = !el.autoscroll.checked;
+});
+
+// Performance mode full-text preview (click a row to show full message)
+if(el.perfPreviewClose) el.perfPreviewClose.addEventListener("click", () => {
+  if(el.perfPreview) el.perfPreview.style.display = "none";
+});
+if(el.viewer) el.viewer.addEventListener("click", (e) => {
+  if(!perfEnabled()) return;
+  const row = e.target.closest(".msg");
+  if(!row) return;
+  const txt = row.dataset.preview || row.title || "";
+  if(!txt) return;
+  if(el.perfPreview){
+    el.perfPreview.style.display = "flex";
+    if(el.perfPreviewHint) el.perfPreviewHint.style.display = "none";
+    if(el.perfPreviewBody) el.perfPreviewBody.textContent = txt;
+  }
+});
+
+
+/* Folder picker persistence (Chromium File System Access API) */
+function showWarning(msg, show=true){
+  el.folderWarning.style.display = show ? "block" : "none";
+  el.folderWarning.innerHTML = msg ? msg : "";
+}
+function supportsFolderPicker(){ return !!window.showDirectoryPicker; }
+
+const DB_NAME = "pg_chat_viewer_db", STORE = "handles", KEY = "dir";
+function idbOpen(){
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if(!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE);
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbSet(key, value){
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, "readwrite");
+    tx.objectStore(STORE).put(value, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function idbGet(key){
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, "readonly");
+    const req = tx.objectStore(STORE).get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function ensurePermission(handle, request=false){
+  if(!handle) return false;
+  const opts = { mode: "read" };
+
+  // First, only *check* permission.
+  if(handle.queryPermission){
+    const q = await handle.queryPermission(opts);
+    if(q === "granted") return true;
+    // Only request permission if explicitly asked (must be user-initiated).
+    if(request && handle.requestPermission){
+      const r = await handle.requestPermission(opts);
+      return r === "granted";
+    }
+    return false;
+  }
+
+  // Older implementations: best effort
+  return true;
+}
+function looksLikeLogFile(name){
+  const n = name.toLowerCase();
+  return n.endsWith(".log") || n.endsWith(".txt");
+}
+async function listFilesInFolder(dirHandle){
+  const files = [];
+  for await (const [name, handle] of dirHandle.entries()){
+    if(handle.kind === "file" && looksLikeLogFile(name)){
+      const file = await handle.getFile();
+      files.push({ name, handle, size: file.size, modified: file.lastModified ? new Date(file.lastModified) : null });
+    }
+  }
+  files.sort((a,b) => (b.modified?.getTime()||0) - (a.modified?.getTime()||0) || a.name.localeCompare(b.name));
+  return files;
+}
+function fmtBytes(bytes){
+  if(bytes < 1024) return bytes + " B";
+  const kb = bytes / 1024;
+  if(kb < 1024) return kb.toFixed(1) + " KB";
+  const mb = kb / 1024;
+  return mb.toFixed(1) + " MB";
+}
+function fmtDate(d){ return d ? d.toLocaleString() : ""; }
+
+async function renderFileList(requestPermission=false){
+  el.fileList.innerHTML = "";
+  if(!state.dirHandle){
+    el.fileList.innerHTML = `<div class="fileItem" style="cursor:default;color:var(--muted)">No folder selected.</div>`;
+    el.refreshFolder.disabled = true;
+    el.grantAccess.disabled = true;
+    return;
+  }
+  el.refreshFolder.disabled = false;
+
+  try{
+    const ok = await ensurePermission(state.dirHandle, requestPermission);
+    if(!ok){
+      // We can *not* request permission on page load; user must click Grant access.
+      showWarning(`Folder permission is needed. Click <b>🔓 Grant access</b> (or <b>Choose folder</b>) and approve the prompt.`);
+      el.fileList.innerHTML = `<div class="fileItem" style="cursor:default;color:var(--muted)">Permission needed.</div>`;
+      el.grantAccess.disabled = false;
+      return;
+    }
+    el.grantAccess.disabled = true;
+    showWarning("", false);
+    const files = await listFilesInFolder(state.dirHandle);
+    if(!files.length){
+      el.fileList.innerHTML = `<div class="fileItem" style="cursor:default;color:var(--muted)">No .log or .txt files found in that folder.</div>`;
+      return;
+    }
+    for(const f of files){
+      const div = document.createElement("div");
+      div.className = "fileItem";
+      div.innerHTML = `<span>${escapeHtml(f.name)}</span><span class="fileMeta">${fmtBytes(f.size)} · ${escapeHtml(fmtDate(f.modified))}</span>`;
+      div.addEventListener("click", async () => {
+        try{
+          await loadFromFileHandle(f.handle, f.name);
+          if(el.autoRefresh?.checked){ startAutoRefresh(); }
+        }catch(err){
+          showWarning(`Could not read that file. Error: <code>${escapeHtml(String(err))}</code>`);
+        }
+      });
+      el.fileList.appendChild(div);
+    }
+  }catch(err){
+    showWarning(`Folder scan failed. Error: <code>${escapeHtml(String(err))}</code>`);
+  }
+}
+
+el.chooseFolder.addEventListener("click", async () => {
+  if(!supportsFolderPicker()){
+    showWarning(
+      `Folder picking isn't available in this browser/context. Try Chrome/Edge/Brave, and ideally open this page via <code>http://localhost</code>.<br><br>
+       Quick local server: <code>python -m http.server 8000</code> then open <code>http://localhost:8000</code>.`
+    );
+    return;
+  }
+  try{
+    const dir = await window.showDirectoryPicker({ mode: "read" });
+    state.dirHandle = dir;
+    await idbSet(KEY, dir);
+    showWarning("", false);
+    el.folderNote.textContent = "Folder selected. Click a file to load it.";
+    el.grantAccess.disabled = true;
+    await renderFileList(false);
+  }catch(err){
+    // user cancelled is fine
+  }
+});
+el.refreshFolder.addEventListener("click", async () => { await renderFileList(true); });
+
+el.grantAccess.addEventListener("click", async () => {
+  await renderFileList(true);
+});
+
+
+function initCollapsibles(){
+  const defaults = { folderBox:true, channelColorsBox:false, combatBox:false, ttsBox:false, alertsBox:false };
+  for(const sec of Object.keys(defaults)){
+    const body = document.querySelector(`[data-sec-body="${sec}"]`);
+    const btn = document.querySelector(`button[data-sec="${sec}"]`);
+    if(!body || !btn) continue;
+    const key = `pg_sec_${sec}`;
+    const saved = localStorage.getItem(key);
+    const isOpen = (saved === null) ? !!defaults[sec] : (saved === "1");
+    const setState = (open)=>{
+      body.classList.toggle("isCollapsed", !open);
+      btn.textContent = open ? "▾" : "▸";
+      localStorage.setItem(key, open ? "1" : "0");
+    };
+    setState(isOpen);
+    btn.addEventListener("click", (e)=>{
+      e.preventDefault();
+      setState(body.classList.contains("isCollapsed"));
+    });
+  }
+}
+
+// Init
+(async function init(){
+  state.colorOverrides = loadColorOverrides();
+  loadPins();
+  initCollapsibles();
+  if(el.performance) el.performance.checked = (localStorage.getItem("pg_perfMode") === "1");
+  if(el.perfPreview){
+    el.perfPreview.style.display = (el.performance && el.performance.checked) ? "flex" : "none";
+    if(el.perfPreviewHint) el.perfPreviewHint.style.display = (el.performance && el.performance.checked) ? "block" : "none";
+  }
+  renderTabs(); renderViewer(); renderColorPickers();
+  initTTS();
+  initAlerts();
+  if(!supportsFolderPicker()){
+    showWarning(`Folder picker isn't available here. You can still use <b>Load log file</b> or drag & drop.`, true);
+    el.grantAccess.disabled = true;
+    await renderFileList(false);
+    return;
+  }
+  try{
+    const saved = await idbGet(KEY);
+    if(saved){
+      state.dirHandle = saved;
+      const ok = await ensurePermission(saved);
+      if(ok){
+        el.folderNote.textContent = "Restored previous folder. Click a file to load it.";
+      }else{
+        el.folderNote.textContent = "Previous folder found, but permission is needed.";
+        showWarning(`Click <b>Choose folder</b> and approve permission to restore access.`, true);
+      }
+    }
+    el.grantAccess.disabled = true;
+    await renderFileList(false);
+  }catch(err){
+    showWarning(`Could not restore folder selection. Error: <code>${escapeHtml(String(err))}</code>`, true);
+    el.grantAccess.disabled = true;
+    await renderFileList(false);
+  }
+})();
+</script>
+</body>
+</html>
