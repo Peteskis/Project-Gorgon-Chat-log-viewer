@@ -1,6 +1,9 @@
 Added NOW v1.6 **(Pinned Messages)** Pin any messages and review in it's own Tab
 
-Coming Soon -- The ability to Export/import your Settings/Theme/Rules to a .json file in case your browser cache clears.
+The ability to Export/import your Settings/Theme/Rules to a .json file in case your browser cache clears.
+
+Timers: Set either (Specific local time for alarms) of (coundown timers). Save as Rules with (custom sound file/TTS/Beep)
+
 
 # Project Gorgon Live Chat log viewer, Chat Rules and Combat Logger   
 New Live Version 1.5 (Beta) is now available!
