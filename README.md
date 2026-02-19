@@ -1,5 +1,7 @@
 Added v1.6 **(Pinned Messages)** Pin any messages and review in it's own Tab
 
+Coming Soon -- The ability to Export/import your Settings/Theme/Rules to a .json file in case your browser cache clears.
+
 # Project Gorgon Live Chat log viewer, Chat Rules and Combat Logger   
 New Live Version 1.5 (Beta) is now available!
 Includes text-to-speech and configurable alert rules that can trigger TTS based on keywords, player names, and/or channel names (supports multiple channels using comma-separated lists).
