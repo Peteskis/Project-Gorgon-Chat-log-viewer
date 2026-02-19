@@ -1,4 +1,4 @@
-Added v1.6 **(Pinned Messages)** Pin any messages and review in it's own Tab
+Added NOW v1.6 **(Pinned Messages)** Pin any messages and review in it's own Tab
 
 Coming Soon -- The ability to Export/import your Settings/Theme/Rules to a .json file in case your browser cache clears.
 
