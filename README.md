@@ -1,6 +1,6 @@
 v1.7 Coming Soon, (Inventory Tracker). Tracks specific collections wtih Pop-out windows and TTS.
 
-Added NOW v1.6 **(Pinned Messages)** Pin any messages and review in it's own Tab
+Added NOW v1.6 **(Pinned Messages)** Pin any messages and review in it's own Tab.
 
 The ability to Export/import your Settings/Theme/Rules to a .json file in case your browser cache clears.
 
