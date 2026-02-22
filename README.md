@@ -1,3 +1,5 @@
+v1.7 Coming Soon, (Inventory Tracker). Tracks specific collections wtih Pop-out windows and TTS.
+
 Added NOW v1.6 **(Pinned Messages)** Pin any messages and review in it's own Tab
 
 The ability to Export/import your Settings/Theme/Rules to a .json file in case your browser cache clears.
@@ -10,7 +12,6 @@ New Live Version 1.5 (Beta) is now available!
 Includes text-to-speech and configurable alert rules that can trigger TTS based on keywords, player names, and/or channel names (supports multiple channels using comma-separated lists).
 Also added an on-screen Tips tab, per-channel pop-out windows, and phrase trimming so you can choose to speak only the text before or after a matched phrase. Added-  Combat Summary. Per Mob Skills/Damage and Pets)
 
-Special thanks to https://www.twitch.tv/zewtastic  for giving me more ideas to implement.
 
 
 # 👉  **[Launch Viewer here](https://peteskis.github.io/Project-Gorgon-Chat-log-viewer/index.html)**  
