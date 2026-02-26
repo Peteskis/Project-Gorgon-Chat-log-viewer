@@ -1,4 +1,5 @@
 v1.7 Coming Soon, (Inventory Tracker). Tracks specific collections wtih Pop-out windows and TTS.
+Real World timer, syncs to real time clock for accurate timer alerts + elapsed timer alert on opening.
 
 Added NOW v1.6 **(Pinned Messages)** Pin any messages and review in it's own Tab.
 
