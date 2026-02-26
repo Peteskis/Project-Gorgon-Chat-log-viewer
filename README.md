@@ -16,7 +16,7 @@ Also added an on-screen Tips tab, per-channel pop-out windows, and phrase trimmi
 
 
 
-# 👉  **[Launch Viewer here](https://peteskis.github.io/Project-Gorgon-Chat-log-viewer/index.html)**  
+# 👉  **[Launch Viewer here V1.6](https://peteskis.github.io/Project-Gorgon-Chat-log-viewer/index.html)**  
 Works best in Chrome / Edge / Brave / Opera (Chromium browsers).
 ---
 
