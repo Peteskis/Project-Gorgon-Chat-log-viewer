@@ -10,7 +10,7 @@ The ability to Export/import your Settings/Theme/Rules to a .json file in case y
 # Project Gorgon Live Chat log viewer, Chat Rules and Combat Logger   
 
 
-# 👉  **[Launch Viewer here V1.6](https://peteskis.github.io/Project-Gorgon-Chat-log-viewer/index.html)**  
+# 👉  **[Launch Viewer here V1.7](https://peteskis.github.io/Project-Gorgon-Chat-log-viewer/index.html)**  
 Works best in Chrome / Edge / Brave / Opera (Chromium browsers).
 ---
 
