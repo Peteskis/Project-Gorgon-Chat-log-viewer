@@ -1,4 +1,4 @@
-Added NOW v1.7 (Inventory Tracker) + (Timers). Tracks specific collections wtih Pop-out windows and TTS.
+For Mr Zew. Added NOW v1.7 (Inventory Tracker) + (Timers). Tracks specific collections wtih Pop-out windows and TTS.
 
 Timers. Real World timer, syncs to real time clock for accurate timer alerts + elapsed timer alert on opening. Create Groups to organise better.
 
