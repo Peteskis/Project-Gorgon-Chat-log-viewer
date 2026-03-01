@@ -1,6 +1,6 @@
-Added NOW v1.7, (Inventory Tracker). Tracks specific collections wtih Pop-out windows and TTS.
+Added NOW v1.7 (Inventory Tracker). Tracks specific collections wtih Pop-out windows and TTS.
 
-Plus: Real World timer, syncs to real time clock for accurate timer alerts + elapsed timer alert on opening. Create Groups to organise better.
+Plus: Timers. Real World timer, syncs to real time clock for accurate timer alerts + elapsed timer alert on opening. Create Groups to organise better.
 
 v1.6 **(Pinned Messages)** Pin any messages and review in it's own Tab.
 
